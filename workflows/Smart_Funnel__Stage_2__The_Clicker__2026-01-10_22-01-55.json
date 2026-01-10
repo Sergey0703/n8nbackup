@@ -1,0 +1,269 @@
+{
+  "updatedAt": "2025-12-27T00:29:27.053Z",
+  "createdAt": "2025-12-26T22:34:44.317Z",
+  "id": "NLRRJMrDYDfqhQ3X",
+  "name": "Smart Funnel: Stage 2 (The Clicker)",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            },
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "445f3708-e922-47fd-821e-317bff981e9f",
+      "name": "Check for Sieved Words"
+    },
+    {
+      "parameters": {
+        "collection": "words",
+        "options": {
+          "limit": 5
+        },
+        "query": "={ \"stage\": \"sieved\" }"
+      },
+      "name": "Get Sieved Words",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "32a6d959-99d4-46a1-9ba6-5125e329b04b",
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "940676896",
+        "text": "=Found a new word in today's news:\n\n🇬🇧 *{{ $json.word }}*\n🇷🇺 {{ $json.translate }}\n\nMove to active practice?",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Yes",
+                    "additionalFields": {
+                      "callback_data": "={{ \"checked|\" + $json._id }}"
+                    }
+                  },
+                  {
+                    "text": "No",
+                    "additionalFields": {
+                      "callback_data": "={{ \"skip|\" + $json._id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "name": "Send to Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        0
+      ],
+      "id": "cb0462cd-37a9-4788-8797-e2b6207363b6",
+      "webhookId": "97aac837-163c-41df-b47c-bc5464c4b069",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "name": "Telegram Callback Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        224
+      ],
+      "id": "8f2ed0dd-9b0e-4ec7-888e-a8a82fa9f53b",
+      "webhookId": "5abfa457-5758-4631-b4a3-305ba271814e",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const [action, id] = items[0].json.callback_query.data.split('|');\n\nreturn [{ \n  json: { \n    _id: id, \n    stage: (action === 'checked' ? 'checked' : 'new') \n  } \n}];"
+      },
+      "name": "Parse Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        208,
+        224
+      ],
+      "id": "07709a24-f931-458b-b71e-4c1bb7249b41"
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "words",
+        "updateKey": "_id",
+        "fields": "stage",
+        "upsert": true,
+        "options": {}
+      },
+      "name": "Update Word Stage",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        400,
+        224
+      ],
+      "id": "e62d0964-467f-4ec0-987d-f6f0f07cd6d4",
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $node[\"Telegram Callback Trigger\"].json.callback_query.message.chat.id }}",
+        "text": "=Done! Word is now {{ $json.action == 'checked' ? 'Active' : 'Skipped' }}.",
+        "additionalFields": {}
+      },
+      "name": "Confirm Update",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.1,
+      "position": [
+        608,
+        224
+      ],
+      "id": "24b33d5a-5a13-498f-ab20-a949bb6a4f2d",
+      "webhookId": "5d12d8cd-f812-406a-82d2-3d94c1255145",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Check for Sieved Words": {
+      "main": [
+        [
+          {
+            "node": "Get Sieved Words",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Sieved Words": {
+      "main": [
+        [
+          {
+            "node": "Send to Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Callback Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Callback": {
+      "main": [
+        [
+          {
+            "node": "Update Word Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Word Stage": {
+      "main": [
+        [
+          {
+            "node": "Confirm Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Check for Sieved Words": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "7efcf81a-906a-4b1f-9502-51d42052969c",
+  "activeVersionId": null,
+  "triggerCount": 2,
+  "shared": [
+    {
+      "updatedAt": "2025-12-26T22:34:44.317Z",
+      "createdAt": "2025-12-26T22:34:44.317Z",
+      "role": "workflow:owner",
+      "workflowId": "NLRRJMrDYDfqhQ3X",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
