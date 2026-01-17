@@ -1,0 +1,508 @@
+{
+  "updatedAt": "2026-01-17T13:45:53.581Z",
+  "createdAt": "2026-01-17T13:21:16.161Z",
+  "id": "GSPjxrD7CcqjYU1n",
+  "name": "Telegram CallBack",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "bd33218a-fac3-4dc7-868b-46af169b80e7",
+      "name": "Telegram: Button Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -720,
+        64
+      ],
+      "webhookId": "edc352f1-924e-4b98-9248-74e059769f65",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json.callback_query.data;\nif (!data) return [];\n\nconst [action, id] = data.split('|');\nreturn [{ json: { action, _id: id, original: $json } }];"
+      },
+      "id": "d3596515-0bd2-4b3d-b7d5-6d68d5ca9195",
+      "name": "Parse Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -336,
+        -128
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "words",
+        "updateKey": "_id",
+        "fields": "=stage",
+        "options": {}
+      },
+      "id": "529bf853-b9a0-49cd-8f02-bb5467c284b6",
+      "name": "MongoDB: Update Stage",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        32,
+        -128
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74e4534c-e4ae-45c1-b6d6-62448cd6b5bf",
+              "name": "stage",
+              "value": "repeat",
+              "type": "string"
+            },
+            {
+              "id": "34c80ec7-fd3d-4f19-9054-9363b1bfcef3",
+              "name": "_id",
+              "value": "={{ $json._id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -144,
+        -128
+      ],
+      "id": "d09105ec-1cdb-482d-bc32-fcb145de88ab",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $('Telegram: Button Trigger').item.json.callback_query.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        304,
+        -128
+      ],
+      "id": "377381ee-4018-4c9e-ab9d-96c606a77ccf",
+      "name": "Answer Query a callback",
+      "webhookId": "429ccdb2-8e30-42e0-8157-963e511d65e0",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "skip|",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    },
+                    "id": "dd877010-e7e6-4a2f-8dbf-e2736b4e9b8a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Repeat"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e9306e72-7814-41f3-8d15-1ee6d663033c",
+                    "leftValue": "={{ $json.callback_query.data }}",
+                    "rightValue": "quiz|",
+                    "operator": {
+                      "type": "string",
+                      "operation": "startsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Quiz"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        -512,
+        64
+      ],
+      "id": "5f0d5285-cf1b-4952-8519-d6705b6fef7a",
+      "name": "Switch"
+    }
+  ],
+  "connections": {
+    "Telegram: Button Trigger": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Callback": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Update Stage": {
+      "main": [
+        [
+          {
+            "node": "Answer Query a callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Update Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Parse Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "5b2af9bd-cd0d-4206-93b6-77a387d2cf60",
+  "activeVersionId": "5b2af9bd-cd0d-4206-93b6-77a387d2cf60",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-17T13:21:16.161Z",
+      "createdAt": "2026-01-17T13:21:16.161Z",
+      "role": "workflow:owner",
+      "workflowId": "GSPjxrD7CcqjYU1n",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-01-17T13:45:57.669Z",
+    "createdAt": "2026-01-17T13:45:53.584Z",
+    "versionId": "5b2af9bd-cd0d-4206-93b6-77a387d2cf60",
+    "workflowId": "GSPjxrD7CcqjYU1n",
+    "nodes": [
+      {
+        "parameters": {
+          "updates": [
+            "callback_query"
+          ],
+          "additionalFields": {}
+        },
+        "id": "bd33218a-fac3-4dc7-868b-46af169b80e7",
+        "name": "Telegram: Button Trigger",
+        "type": "n8n-nodes-base.telegramTrigger",
+        "typeVersion": 1.1,
+        "position": [
+          -720,
+          64
+        ],
+        "webhookId": "edc352f1-924e-4b98-9248-74e059769f65",
+        "credentials": {
+          "telegramApi": {
+            "id": "44mDjW8nHCGChobZ",
+            "name": "Telegram account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const data = $json.callback_query.data;\nif (!data) return [];\n\nconst [action, id] = data.split('|');\nreturn [{ json: { action, _id: id, original: $json } }];"
+        },
+        "id": "d3596515-0bd2-4b3d-b7d5-6d68d5ca9195",
+        "name": "Parse Callback",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -336,
+          -128
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "collection": "words",
+          "updateKey": "_id",
+          "fields": "=stage",
+          "options": {}
+        },
+        "id": "529bf853-b9a0-49cd-8f02-bb5467c284b6",
+        "name": "MongoDB: Update Stage",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          32,
+          -128
+        ],
+        "alwaysOutputData": false,
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "id": "74e4534c-e4ae-45c1-b6d6-62448cd6b5bf",
+                "name": "stage",
+                "value": "repeat",
+                "type": "string"
+              },
+              {
+                "id": "34c80ec7-fd3d-4f19-9054-9363b1bfcef3",
+                "name": "_id",
+                "value": "={{ $json._id }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          -144,
+          -128
+        ],
+        "id": "d09105ec-1cdb-482d-bc32-fcb145de88ab",
+        "name": "Edit Fields"
+      },
+      {
+        "parameters": {
+          "resource": "callback",
+          "queryId": "={{ $('Telegram: Button Trigger').item.json.callback_query.id }}",
+          "additionalFields": {}
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          304,
+          -128
+        ],
+        "id": "377381ee-4018-4c9e-ab9d-96c606a77ccf",
+        "name": "Answer Query a callback",
+        "webhookId": "429ccdb2-8e30-42e0-8157-963e511d65e0",
+        "credentials": {
+          "telegramApi": {
+            "id": "44mDjW8nHCGChobZ",
+            "name": "Telegram account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 3
+                  },
+                  "conditions": [
+                    {
+                      "leftValue": "={{ $json.callback_query.data }}",
+                      "rightValue": "skip|",
+                      "operator": {
+                        "type": "string",
+                        "operation": "startsWith"
+                      },
+                      "id": "dd877010-e7e6-4a2f-8dbf-e2736b4e9b8a"
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Repeat"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "caseSensitive": true,
+                    "leftValue": "",
+                    "typeValidation": "strict",
+                    "version": 3
+                  },
+                  "conditions": [
+                    {
+                      "id": "e9306e72-7814-41f3-8d15-1ee6d663033c",
+                      "leftValue": "={{ $json.callback_query.data }}",
+                      "rightValue": "quiz|",
+                      "operator": {
+                        "type": "string",
+                        "operation": "startsWith"
+                      }
+                    }
+                  ],
+                  "combinator": "and"
+                },
+                "renameOutput": true,
+                "outputKey": "Quiz"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.switch",
+        "typeVersion": 3.4,
+        "position": [
+          -512,
+          64
+        ],
+        "id": "5f0d5285-cf1b-4952-8519-d6705b6fef7a",
+        "name": "Switch"
+      }
+    ],
+    "connections": {
+      "Telegram: Button Trigger": {
+        "main": [
+          [
+            {
+              "node": "Switch",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse Callback": {
+        "main": [
+          [
+            {
+              "node": "Edit Fields",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Update Stage": {
+        "main": [
+          [
+            {
+              "node": "Answer Query a callback",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Edit Fields": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Update Stage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Switch": {
+        "main": [
+          [
+            {
+              "node": "Parse Callback",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": "Version 5b2af9bd",
+    "description": "",
+    "autosaved": false
+  },
+  "tags": []
+}
