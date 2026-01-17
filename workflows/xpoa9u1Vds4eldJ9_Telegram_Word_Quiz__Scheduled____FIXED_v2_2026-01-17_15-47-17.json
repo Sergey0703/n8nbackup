@@ -1,0 +1,622 @@
+{
+  "updatedAt": "2026-01-12T16:18:32.901Z",
+  "createdAt": "2026-01-11T19:05:49.670Z",
+  "id": "xpoa9u1Vds4eldJ9",
+  "name": "Telegram Word Quiz (Scheduled) - FIXED v2",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "ed1e83dc-32e4-4d7e-9a01-2783c9b047ce",
+      "name": "Schedule Trigger (9:00 AM)",
+      "type": "n8n-nodes-base.cron",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "collection": "words",
+        "options": {
+          "limit": 1
+        },
+        "query": "={ \"stage\": \"repeat\" }"
+      },
+      "id": "8852fe88-eef8-48fc-a8e3-1fdb1d3b6f32",
+      "name": "Get Target (Repeat)",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        272
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "collection": "words",
+        "options": {
+          "limit": 4
+        },
+        "query": "={ \"stage\": \"repeat\" }"
+      },
+      "id": "1bb7d9aa-48ab-4610-9253-d0351258e5cc",
+      "name": "Get Distractors",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        272
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const target = $items(\"Get Target (Repeat)\")[0].json;\nlet distractors = $items(\"Get Distractors\").map(i => i.json);\n\n// 1. Убираем целевое слово из дистракторов (чтобы не было дублей)\ndistractors = distractors.filter(d => d.word.trim().toLowerCase() !== target.word.trim().toLowerCase());\n\n// 2. Берем только 3 случайных дистрактора\ndistractors = distractors.slice(0, 3);\n\n// Create Options\nconst options = [\n  { text: target.translate, callback_data: `check:${target._id}:correct` },\n  ...distractors.map(d => ({ text: d.translate, callback_data: `check:${target._id}:wrong:${d.word}` }))\n];\n\n// Shuffle Options (Перемешиваем)\nfor (let i = options.length - 1; i > 0; i--) {\n  const j = Math.floor(Math.random() * (i + 1));\n  [options[i], options[j]] = [options[j], options[i]];\n}\n\n// Prepare Keyboard (2 columns)\nconst inline_keyboard = [];\nfor (let i = 0; i < options.length; i += 2) {\n  inline_keyboard.push(options.slice(i, i + 2));\n}\n\n// Mask Example\nlet questionText = `🎯 <b>${target.word}</b>`;\nif (target.example) {\n   const maskedExample = target.example.replace(new RegExp(target.word, 'gi'), '_______');\n   questionText += `\\n\\n📝 <i>${maskedExample}</i>`;\n}\nif (target.transcription) {\n    questionText += `\\n\\n🗣 [${target.transcription}]`;\n}\nquestionText += '\\n\\n👇 <i>Choose translation:</i>';\n\n// Audio handling\nlet audioUrl = null;\nif (target.audio) {\n  let url = target.audio;\n  if (url.startsWith('[sound:')) {\n      url = url.slice(7, -1);\n  }\n  audioUrl = url;\n}\n\n// Determine Chat ID (безопасно)\nlet chatId = 940676896; // ВАШ ID ПО УМОЛЧАНИЮ\ntry {\n    const triggerData = $items(\"Telegram Trigger (Command)\");\n    if (triggerData && triggerData.length > 0 && triggerData[0].json.message) {\n        chatId = triggerData[0].json.message.chat.id;\n    }\n} catch(e) {}\n\nreturn { \n  json: { \n    chatId,\n    questionText,\n    keyboard_rows: { inline_keyboard },\n    audioUrl\n  } \n};"
+      },
+      "id": "ba9cfbcb-20f8-4b7a-b7ac-ac4f9239b35c",
+      "name": "Prepare Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1888,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "=940676896",
+        "text": "={{ $json.questionText }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.keyboard_rows.inline_keyboard[0][0].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.keyboard_rows.inline_keyboard[0][0].callback_data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.keyboard_rows.inline_keyboard[0][1].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.keyboard_rows.inline_keyboard[0][1].callback_data }}"
+                    }
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "={{ $json.keyboard_rows.inline_keyboard[1][0].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.keyboard_rows.inline_keyboard[1][0].callback_data }}"
+                    }
+                  },
+                  {
+                    "text": "={{ $json.keyboard_rows.inline_keyboard[1][1].text }}",
+                    "additionalFields": {
+                      "callback_data": "={{ $json.keyboard_rows.inline_keyboard[1][1].callback_data }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {}
+      },
+      "id": "3766aa41-448d-4c3f-a25d-c2a7f78aaefd",
+      "name": "Send Question",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        2336,
+        464
+      ],
+      "webhookId": "e2242c14-2b11-4c69-a6d5-dabc1fa49b30",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.audioUrl }}",
+              "operation": "isNotEmpty"
+            }
+          ]
+        }
+      },
+      "id": "404f865c-2021-40dd-aa9b-40e743ff51d0",
+      "name": "Has Audio?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        2112,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendAudio",
+        "chatId": "={{ $json.chatId }}",
+        "file": "={{ $json.audioUrl }}",
+        "additionalFields": {}
+      },
+      "id": "9ddb7afc-1bf1-402c-a8f8-a879989e2098",
+      "name": "Send Audio",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        2336,
+        272
+      ],
+      "webhookId": "8e25318a-bddb-4baa-892f-efb7750be270",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "f3d380b6-a92b-4a37-90ab-6607062bf866",
+      "name": "Telegram Trigger (Callback)",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [
+        992,
+        656
+      ],
+      "webhookId": "4a053b01-b7ea-4a16-9fe2-18ea9825da2f",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json.callback_query.data;\nconst parts = data.split(':');\nconst action = parts[0];\nconst wordId = parts[1];\nconst result = parts[2]; // 'correct' or 'wrong'\n\nif (action !== 'check') {\n  return { json: { ignore: true } };\n}\n\nreturn { \n  json: { \n    wordId, \n    isCorrect: result === 'correct',\n    chatId: $json.callback_query.message.chat.id,\n    messageId: $json.callback_query.message.message_id,\n    callbackQueryId: $json.callback_query.id\n  } \n};"
+      },
+      "id": "97910f87-dd58-4135-a21c-b41e92711cdd",
+      "name": "Parse Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 1,
+      "position": [
+        1440,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "collection": "words",
+        "options": {},
+        "query": "={\n  \"_id\": \"{{ $json.wordId }}\"\n}"
+      },
+      "id": "be02377d-823d-4802-ae27-56688c011f04",
+      "name": "Get Word Info",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        1664,
+        656
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $node[\"Parse Callback\"].json.isCorrect }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "da47e666-32b8-4e39-b626-edc2c37b18a9",
+      "name": "Is Correct?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1888,
+        656
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "words",
+        "updateKey": "_id",
+        "fields": "stage",
+        "options": {}
+      },
+      "id": "4060cee8-b2a4-427b-9c0f-886f0236a869",
+      "name": "Set Stage New",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1,
+      "position": [
+        2336,
+        656
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $node[\"Parse Callback\"].json.chatId }}",
+        "messageId": "={{ $node[\"Parse Callback\"].json.messageId }}",
+        "replyMarkup": "inlineKeyboard",
+        "text": "=✅ <b>Correct!</b>\n\n🎯 <b>{{ $json.word }}</b> — {{ $json.translate }}\n\nTap /quiz for next word.",
+        "additionalFields": {}
+      },
+      "id": "30a1c032-fe54-4096-b9e9-1e5e78126470",
+      "name": "Edit Correct",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        656
+      ],
+      "webhookId": "5893fcd8-d8ed-4db0-b3d6-286554008ead",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $node[\"Parse Callback\"].json.chatId }}",
+        "messageId": "={{ $node[\"Parse Callback\"].json.messageId }}",
+        "replyMarkup": "inlineKeyboard",
+        "text": "=❌ <b>Wrong!</b>\n\n🎯 <b>{{ $json.word }}</b> — {{ $json.translate }}\n\nDon't worry, try again later!",
+        "additionalFields": {}
+      },
+      "id": "53e3d804-ce07-42ad-afe6-3760cc887162",
+      "name": "Edit Wrong",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        2560,
+        848
+      ],
+      "webhookId": "114198ff-68d2-4a0e-a7a2-c7cd6d5b3d4c",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $node[\"Parse Callback\"].json.callbackQueryId }}",
+        "additionalFields": {}
+      },
+      "id": "d98e6a0b-610e-46d5-99b2-15b08224f095",
+      "name": "Answer Callback",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        2784,
+        656
+      ],
+      "webhookId": "6d5a67f3-66e7-45a3-a627-1a961948220b",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1d3b1b91-6892-4dbc-ac06-d4dab66106bf",
+              "name": "stage",
+              "value": "checked",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2112,
+        656
+      ],
+      "id": "7235a197-3964-4495-b2bc-4d222e079c97",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bf561fac-72af-4ae1-a8b9-84ad9da0e620",
+              "leftValue": "={{ $json.callback_query.data }}",
+              "rightValue": "cmd:quiz",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1200,
+        656
+      ],
+      "id": "c13a76cc-9ebf-43f8-ba6f-0f7a5d3c1f38",
+      "name": "If"
+    }
+  ],
+  "connections": {
+    "Schedule Trigger (9:00 AM)": {
+      "main": [
+        [
+          {
+            "node": "Get Target (Repeat)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Target (Repeat)": {
+      "main": [
+        [
+          {
+            "node": "Get Distractors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Distractors": {
+      "main": [
+        [
+          {
+            "node": "Prepare Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Message": {
+      "main": [
+        [
+          {
+            "node": "Has Audio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Audio?": {
+      "main": [
+        [
+          {
+            "node": "Send Audio",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send Question",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Trigger (Callback)": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Callback": {
+      "main": [
+        [
+          {
+            "node": "Get Word Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Word Info": {
+      "main": [
+        [
+          {
+            "node": "Is Correct?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Correct?": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Wrong",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Stage New": {
+      "main": [
+        [
+          {
+            "node": "Edit Correct",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Correct": {
+      "main": [
+        [
+          {
+            "node": "Answer Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Wrong": {
+      "main": [
+        [
+          {
+            "node": "Answer Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Set Stage New",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Get Target (Repeat)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "9fea5e9e-e771-45b7-9d08-01f9416a052d",
+  "activeVersionId": null,
+  "triggerCount": 2,
+  "shared": [
+    {
+      "updatedAt": "2026-01-11T19:05:49.670Z",
+      "createdAt": "2026-01-11T19:05:49.670Z",
+      "role": "workflow:owner",
+      "workflowId": "xpoa9u1Vds4eldJ9",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
