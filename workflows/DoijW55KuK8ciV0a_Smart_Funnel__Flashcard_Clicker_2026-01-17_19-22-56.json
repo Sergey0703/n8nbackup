@@ -1,0 +1,483 @@
+{
+  "updatedAt": "2026-01-01T22:53:17.859Z",
+  "createdAt": "2025-12-30T18:25:08.074Z",
+  "id": "DoijW55KuK8ciV0a",
+  "name": "Smart Funnel: Flashcard Clicker",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            },
+            {
+              "triggerAtHour": 18
+            }
+          ]
+        }
+      },
+      "id": "c6e2c52a-680d-476e-b064-379383a3abe5",
+      "name": "Schedule: Daily Sieve",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        432
+      ]
+    },
+    {
+      "parameters": {
+        "collection": "words",
+        "options": {
+          "limit": 20
+        },
+        "query": "={ \"stage\": \"sieved\" }"
+      },
+      "id": "9c51ef1a-4d5a-4d73-b657-57414cdbd319",
+      "name": "MongoDB: Get Sieved",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        2368,
+        432
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "940676896",
+        "text": "=🇬🇧 **{{ $json.word }}**",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "Translate",
+                    "additionalFields": {
+                      "callback_data": "={{ 'show|' + $json._id }}"
+                    }
+                  },
+                  {
+                    "text": "Repeat",
+                    "additionalFields": {
+                      "callback_data": "={{ 'skip|' + $json._id }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "74b6915b-0633-4a8e-9d3a-ecc9cfd88492",
+      "name": "Telegram: Send Flashcard",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2560,
+        432
+      ],
+      "webhookId": "dc09b629-9579-4990-9372-e69a5ae6d6b3",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "updates": [
+          "callback_query"
+        ],
+        "additionalFields": {}
+      },
+      "id": "c41087ed-238e-4ebc-be4b-5e1f9bafdcb7",
+      "name": "Telegram: Button Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        2160,
+        688
+      ],
+      "webhookId": "edc352f1-924e-4b98-9248-74e059769f65",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $json.callback_query.data;\nif (!data) return [];\n\nconst [action, id] = data.split('|');\nreturn [{ json: { action, _id: id, original: $json } }];"
+      },
+      "id": "8a0ff5e9-e8c6-42f7-bd8c-a52760884368",
+      "name": "Parse Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2368,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "collection": "words",
+        "options": {},
+        "query": "={ \"_id\": \"{{ $json._id }}\" }"
+      },
+      "id": "04aa045a-27af-4ea2-ae31-cbf0a4d19b95",
+      "name": "MongoDB: Get Word Data",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        2816,
+        576
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "editMessageText",
+        "chatId": "={{ $node[\"Parse Callback\"].json.original.callback_query.message.chat.id }}",
+        "messageId": "={{ $node[\"Parse Callback\"].json.original.callback_query.message.message_id }}",
+        "replyMarkup": "inline_keyboard",
+        "text": "=🇬🇧 **{{ $json.word }}** — 🇷🇺 {{ $json.translate }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "ea3fbfee-89a8-4a6f-961d-da15630545fb",
+      "name": "TG: Reveal Translation",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3008,
+        576
+      ],
+      "webhookId": "cdbc3fda-be9c-4fad-8e49-c2135a90df98",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "collection": "words",
+        "updateKey": "_id",
+        "fields": "=stage",
+        "options": {}
+      },
+      "id": "0ca2127e-3271-4e13-9d33-69216bb998be",
+      "name": "MongoDB: Update Stage",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        3008,
+        784
+      ],
+      "alwaysOutputData": false,
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "show",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "7600ee7a-270f-484e-a57e-06ec454ae023"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "show"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "9d75040c-7e74-4ae3-931f-dee12cb902a9",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "skip",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "skip"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2576,
+        688
+      ],
+      "id": "1f64820a-984f-4288-8ce2-df0ee13855f8",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "74e4534c-e4ae-45c1-b6d6-62448cd6b5bf",
+              "name": "stage",
+              "value": "skip",
+              "type": "string"
+            },
+            {
+              "id": "34c80ec7-fd3d-4f19-9054-9363b1bfcef3",
+              "name": "_id",
+              "value": "={{ $json._id }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        2784,
+        784
+      ],
+      "id": "d4505e08-9ef0-436f-8838-9a803b519cec",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $('Telegram: Button Trigger').item.json.callback_query.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3200,
+        576
+      ],
+      "id": "abddac86-af16-49ae-845c-cdf767501a1b",
+      "name": "Answer Query a callback1",
+      "webhookId": "429ccdb2-8e30-42e0-8157-963e511d65e0",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $('Telegram: Button Trigger').item.json.callback_query.id }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3232,
+        784
+      ],
+      "id": "5982b540-f0f0-4ecf-9aba-baa81f3e5384",
+      "name": "Answer Query a callback",
+      "webhookId": "429ccdb2-8e30-42e0-8157-963e511d65e0",
+      "credentials": {
+        "telegramApi": {
+          "id": "44mDjW8nHCGChobZ",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule: Daily Sieve": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Get Sieved",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Get Sieved": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Send Flashcard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Button Trigger": {
+      "main": [
+        [
+          {
+            "node": "Parse Callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Callback": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Get Word Data": {
+      "main": [
+        [
+          {
+            "node": "TG: Reveal Translation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Update Stage": {
+      "main": [
+        [
+          {
+            "node": "Answer Query a callback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TG: Reveal Translation": {
+      "main": [
+        [
+          {
+            "node": "Answer Query a callback1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Get Word Data",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Update Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:Schedule: Daily Sieve": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "a1efc804-f3fc-4cba-9924-ce5738318556",
+  "activeVersionId": null,
+  "triggerCount": 2,
+  "shared": [
+    {
+      "updatedAt": "2025-12-30T18:25:08.074Z",
+      "createdAt": "2025-12-30T18:25:08.074Z",
+      "role": "workflow:owner",
+      "workflowId": "DoijW55KuK8ciV0a",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
