@@ -1,0 +1,251 @@
+{
+  "updatedAt": "2026-01-20T18:52:44.877Z",
+  "createdAt": "2026-01-20T18:46:00.233Z",
+  "id": "mDgiKAx6dN52uGNZ",
+  "name": "API - Get Repeat Words",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "words-repeat",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "webhookId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+    },
+    {
+      "id": "mongo-1",
+      "name": "MongoDB: Get Repeat Words",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "collection": "words",
+        "query": "={ \"stage\": \"repeat\" }",
+        "options": {
+          "limit": 50
+        }
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "code-1",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const words = $input.all().map(item => {\n  const w = item.json;\n  let audioUrl = w.audio || null;\n  \n  // Normalize audio URL (remove [sound:] wrapper if present)\n  if (audioUrl && audioUrl.startsWith('[sound:')) {\n    audioUrl = audioUrl.slice(7, -1);\n  }\n  \n  return {\n    _id: w._id,\n    word: w.word,\n    translate: w.translate,\n    transcript: w.transcript || '',\n    audio: audioUrl,\n    example: w.example || ''\n  };\n});\n\nreturn [{ json: { words, count: words.length } }];"
+      }
+    },
+    {
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Get Repeat Words",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Get Repeat Words": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "6f73154c-13b1-45a7-94d3-85100dbfed22",
+  "activeVersionId": "6f73154c-13b1-45a7-94d3-85100dbfed22",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-20T18:46:00.233Z",
+      "createdAt": "2026-01-20T18:46:00.233Z",
+      "role": "workflow:owner",
+      "workflowId": "mDgiKAx6dN52uGNZ",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-01-20T18:52:44.881Z",
+    "createdAt": "2026-01-20T18:52:44.881Z",
+    "versionId": "6f73154c-13b1-45a7-94d3-85100dbfed22",
+    "workflowId": "mDgiKAx6dN52uGNZ",
+    "nodes": [
+      {
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "path": "words-repeat",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "onError": "continueRegularOutput",
+        "webhookId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+      },
+      {
+        "id": "mongo-1",
+        "name": "MongoDB: Get Repeat Words",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "collection": "words",
+          "query": "={ \"stage\": \"repeat\" }",
+          "options": {
+            "limit": 50
+          }
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "code-1",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const words = $input.all().map(item => {\n  const w = item.json;\n  let audioUrl = w.audio || null;\n  \n  // Normalize audio URL (remove [sound:] wrapper if present)\n  if (audioUrl && audioUrl.startsWith('[sound:')) {\n    audioUrl = audioUrl.slice(7, -1);\n  }\n  \n  return {\n    _id: w._id,\n    word: w.word,\n    translate: w.translate,\n    transcript: w.transcript || '',\n    audio: audioUrl,\n    example: w.example || ''\n  };\n});\n\nreturn [{ json: { words, count: words.length } }];"
+        }
+      },
+      {
+        "id": "respond-1",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}"
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Get Repeat Words",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Get Repeat Words": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
