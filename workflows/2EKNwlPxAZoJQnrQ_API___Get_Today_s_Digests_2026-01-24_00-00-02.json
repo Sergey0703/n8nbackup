@@ -1,0 +1,463 @@
+{
+  "updatedAt": "2026-01-23T20:38:15.390Z",
+  "createdAt": "2026-01-23T20:29:17.589Z",
+  "id": "2EKNwlPxAZoJQnrQ",
+  "name": "API - Get Today's Digests",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "path": "get-digests",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "digest-api-webhook"
+    },
+    {
+      "id": "datatable-1",
+      "name": "Get Latest Digest",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        470,
+        300
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "JnVde1xTjaVHMlMx",
+          "mode": "id"
+        },
+        "limit": 1,
+        "sort": {
+          "sortRules": [
+            {
+              "keyName": "createdAt",
+              "order": "desc"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "code-prepare",
+      "name": "Prepare Translation Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        690,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const digest = items[0].json;\nconst englishText = digest.text || '';\n\n// Clean the text for translation (remove HTML tags for cleaner translation)\nconst cleanText = englishText.replace(/<[^>]*>/g, '');\n\nreturn [{ json: {\n  id: digest.id,\n  text: englishText,\n  createdAt: digest.createdAt,\n  prompt: `Translate the following English news digest to Russian. Keep it natural and fluent. Do not add any introductions or explanations, just provide the translation:\\n\\n${cleanText}`\n}}];"
+      }
+    },
+    {
+      "id": "llm-chain",
+      "name": "Translate to Russian",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.8,
+      "position": [
+        910,
+        300
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.prompt }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You are a professional translator. Translate text from English to Russian accurately and naturally."
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "gemini-model",
+      "name": "Google Gemini",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        926,
+        520
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LkIHzVT9REIIoRbA",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "id": "code-format",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const input = $('Prepare Translation Prompt').first().json;\nconst russianText = items[0].json.text || '';\n\nreturn [{ json: {\n  digest: {\n    id: input.id,\n    text: input.text,\n    russianText: russianText,\n    createdAt: input.createdAt\n  }\n}}];"
+      }
+    },
+    {
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1350,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Latest Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Latest Digest": {
+      "main": [
+        [
+          {
+            "node": "Prepare Translation Prompt",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Translation Prompt": {
+      "main": [
+        [
+          {
+            "node": "Translate to Russian",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Translate to Russian": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Translate to Russian",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "26145da2-f9e4-4752-87ce-38577fa9025c",
+  "activeVersionId": "26145da2-f9e4-4752-87ce-38577fa9025c",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-23T20:29:17.589Z",
+      "createdAt": "2026-01-23T20:29:17.589Z",
+      "role": "workflow:owner",
+      "workflowId": "2EKNwlPxAZoJQnrQ",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-01-23T20:38:15.392Z",
+    "createdAt": "2026-01-23T20:38:15.392Z",
+    "versionId": "26145da2-f9e4-4752-87ce-38577fa9025c",
+    "workflowId": "2EKNwlPxAZoJQnrQ",
+    "nodes": [
+      {
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {
+          "path": "get-digests",
+          "httpMethod": "GET",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "digest-api-webhook"
+      },
+      {
+        "id": "datatable-1",
+        "name": "Get Latest Digest",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          470,
+          300
+        ],
+        "parameters": {
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "value": "JnVde1xTjaVHMlMx",
+            "mode": "id"
+          },
+          "limit": 1,
+          "sort": {
+            "sortRules": [
+              {
+                "keyName": "createdAt",
+                "order": "desc"
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "code-prepare",
+        "name": "Prepare Translation Prompt",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          690,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const digest = items[0].json;\nconst englishText = digest.text || '';\n\n// Clean the text for translation (remove HTML tags for cleaner translation)\nconst cleanText = englishText.replace(/<[^>]*>/g, '');\n\nreturn [{ json: {\n  id: digest.id,\n  text: englishText,\n  createdAt: digest.createdAt,\n  prompt: `Translate the following English news digest to Russian. Keep it natural and fluent. Do not add any introductions or explanations, just provide the translation:\\n\\n${cleanText}`\n}}];"
+        }
+      },
+      {
+        "id": "llm-chain",
+        "name": "Translate to Russian",
+        "type": "@n8n/n8n-nodes-langchain.chainLlm",
+        "typeVersion": 1.8,
+        "position": [
+          910,
+          300
+        ],
+        "parameters": {
+          "promptType": "define",
+          "text": "={{ $json.prompt }}",
+          "messages": {
+            "messageValues": [
+              {
+                "message": "You are a professional translator. Translate text from English to Russian accurately and naturally."
+              }
+            ]
+          }
+        }
+      },
+      {
+        "id": "gemini-model",
+        "name": "Google Gemini",
+        "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "typeVersion": 1,
+        "position": [
+          926,
+          520
+        ],
+        "parameters": {
+          "options": {}
+        },
+        "credentials": {
+          "googlePalmApi": {
+            "id": "LkIHzVT9REIIoRbA",
+            "name": "Google Gemini(PaLM) Api account"
+          }
+        }
+      },
+      {
+        "id": "code-format",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1130,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const input = $('Prepare Translation Prompt').first().json;\nconst russianText = items[0].json.text || '';\n\nreturn [{ json: {\n  digest: {\n    id: input.id,\n    text: input.text,\n    russianText: russianText,\n    createdAt: input.createdAt\n  }\n}}];"
+        }
+      },
+      {
+        "id": "respond-1",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1350,
+          300
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "GET, OPTIONS"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Get Latest Digest",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Latest Digest": {
+        "main": [
+          [
+            {
+              "node": "Prepare Translation Prompt",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Prepare Translation Prompt": {
+        "main": [
+          [
+            {
+              "node": "Translate to Russian",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Translate to Russian": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Google Gemini": {
+        "ai_languageModel": [
+          [
+            {
+              "node": "Translate to Russian",
+              "type": "ai_languageModel",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
