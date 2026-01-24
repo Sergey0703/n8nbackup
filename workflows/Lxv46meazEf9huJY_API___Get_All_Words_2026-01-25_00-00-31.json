@@ -1,0 +1,265 @@
+{
+  "updatedAt": "2026-01-24T18:41:48.666Z",
+  "createdAt": "2026-01-24T18:12:23.375Z",
+  "id": "Lxv46meazEf9huJY",
+  "name": "API - Get All Words",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "words-all",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "dict-api-webhook-123"
+    },
+    {
+      "parameters": {
+        "collection": "words",
+        "options": {
+          "limit": 200,
+          "sort": "{ \"trainDate\": 1 }"
+        }
+      },
+      "id": "mongo-words",
+      "name": "MongoDB: Get All Words",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const words = $input.all().map(item => {\n  const data = item.json;\n  const wordLower = data.word.toLowerCase();\n  const audioUrl = `https://vocab.aimediaflow.net/audio/${encodeURIComponent(wordLower)}.mp3`;\n  \n  return {\n    _id: data._id,\n    word: data.word,\n    translate: data.translate,\n    transcript: data.transcript || '',\n    audio: audioUrl\n  };\n});\n\nreturn [{ json: { \n  words: words,\n  total: words.length\n} }];"
+      },
+      "id": "code-format",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        672,
+        0
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Get All Words",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Get All Words": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "a5ac81a3-ede5-4537-bab6-255a6e2ede11",
+  "activeVersionId": "a5ac81a3-ede5-4537-bab6-255a6e2ede11",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-24T18:12:23.375Z",
+      "createdAt": "2026-01-24T18:12:23.375Z",
+      "role": "workflow:owner",
+      "workflowId": "Lxv46meazEf9huJY",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-01-24T18:41:52.056Z",
+    "createdAt": "2026-01-24T18:41:48.670Z",
+    "versionId": "a5ac81a3-ede5-4537-bab6-255a6e2ede11",
+    "workflowId": "Lxv46meazEf9huJY",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "words-all",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "dict-api-webhook-123"
+      },
+      {
+        "parameters": {
+          "collection": "words",
+          "options": {
+            "limit": 200,
+            "sort": "{ \"trainDate\": 1 }"
+          }
+        },
+        "id": "mongo-words",
+        "name": "MongoDB: Get All Words",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          224,
+          0
+        ],
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const words = $input.all().map(item => {\n  const data = item.json;\n  const wordLower = data.word.toLowerCase();\n  const audioUrl = `https://vocab.aimediaflow.net/audio/${encodeURIComponent(wordLower)}.mp3`;\n  \n  return {\n    _id: data._id,\n    word: data.word,\n    translate: data.translate,\n    transcript: data.transcript || '',\n    audio: audioUrl\n  };\n});\n\nreturn [{ json: { \n  words: words,\n  total: words.length\n} }];"
+        },
+        "id": "code-format",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          448,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        },
+        "id": "respond-1",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          672,
+          0
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Get All Words",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Get All Words": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": "Version a5ac81a3",
+    "description": "",
+    "autosaved": false
+  },
+  "tags": []
+}
