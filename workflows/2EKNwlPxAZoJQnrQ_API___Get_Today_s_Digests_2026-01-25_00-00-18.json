@@ -1,0 +1,405 @@
+{
+  "updatedAt": "2026-01-24T14:56:41.093Z",
+  "createdAt": "2026-01-23T20:29:17.589Z",
+  "id": "2EKNwlPxAZoJQnrQ",
+  "name": "API - Get Today's Digests",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "path": "get-digests",
+        "httpMethod": "GET",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "digest-api-webhook"
+    },
+    {
+      "id": "datatable-1",
+      "name": "Get Recent Digests",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        470,
+        300
+      ],
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "JnVde1xTjaVHMlMx",
+          "mode": "id"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "createdAt",
+              "condition": "gte",
+              "keyValue": "={{ $now.minus({days: 7}).toISO() }}"
+            }
+          ]
+        },
+        "limit": 10
+      }
+    },
+    {
+      "id": "sort-1",
+      "name": "Sort by Date",
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        690,
+        300
+      ],
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "createdAt",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "limit-1",
+      "name": "Get First",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        910,
+        300
+      ],
+      "parameters": {
+        "maxItems": 1
+      }
+    },
+    {
+      "id": "code-format",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1130,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const digest = items[0]?.json;\n\nif (!digest) {\n  return [{ json: { digest: null } }];\n}\n\nreturn [{ json: {\n  digest: {\n    id: digest.id,\n    text: digest.text || '',\n    russianText: digest.translation || '',\n    audioUrl: digest.audioUrl || null,\n    createdAt: digest.createdAt\n  }\n}}];"
+      }
+    },
+    {
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1350,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Recent Digests",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Recent Digests": {
+      "main": [
+        [
+          {
+            "node": "Sort by Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort by Date": {
+      "main": [
+        [
+          {
+            "node": "Get First",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get First": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "565df4f3-53da-4e5f-b567-41991d3d1e48",
+  "activeVersionId": "565df4f3-53da-4e5f-b567-41991d3d1e48",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-23T20:29:17.589Z",
+      "createdAt": "2026-01-23T20:29:17.589Z",
+      "role": "workflow:owner",
+      "workflowId": "2EKNwlPxAZoJQnrQ",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-01-24T14:56:41.097Z",
+    "createdAt": "2026-01-24T14:56:41.097Z",
+    "versionId": "565df4f3-53da-4e5f-b567-41991d3d1e48",
+    "workflowId": "2EKNwlPxAZoJQnrQ",
+    "nodes": [
+      {
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {
+          "path": "get-digests",
+          "httpMethod": "GET",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "digest-api-webhook"
+      },
+      {
+        "id": "datatable-1",
+        "name": "Get Recent Digests",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          470,
+          300
+        ],
+        "parameters": {
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "value": "JnVde1xTjaVHMlMx",
+            "mode": "id"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "createdAt",
+                "condition": "gte",
+                "keyValue": "={{ $now.minus({days: 7}).toISO() }}"
+              }
+            ]
+          },
+          "limit": 10
+        }
+      },
+      {
+        "id": "sort-1",
+        "name": "Sort by Date",
+        "type": "n8n-nodes-base.sort",
+        "typeVersion": 1,
+        "position": [
+          690,
+          300
+        ],
+        "parameters": {
+          "sortFieldsUi": {
+            "sortField": [
+              {
+                "fieldName": "createdAt",
+                "order": "descending"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "limit-1",
+        "name": "Get First",
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          910,
+          300
+        ],
+        "parameters": {
+          "maxItems": 1
+        }
+      },
+      {
+        "id": "code-format",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1130,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const digest = items[0]?.json;\n\nif (!digest) {\n  return [{ json: { digest: null } }];\n}\n\nreturn [{ json: {\n  digest: {\n    id: digest.id,\n    text: digest.text || '',\n    russianText: digest.translation || '',\n    audioUrl: digest.audioUrl || null,\n    createdAt: digest.createdAt\n  }\n}}];"
+        }
+      },
+      {
+        "id": "respond-1",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1350,
+          300
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "GET, OPTIONS"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Get Recent Digests",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Recent Digests": {
+        "main": [
+          [
+            {
+              "node": "Sort by Date",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sort by Date": {
+        "main": [
+          [
+            {
+              "node": "Get First",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get First": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
