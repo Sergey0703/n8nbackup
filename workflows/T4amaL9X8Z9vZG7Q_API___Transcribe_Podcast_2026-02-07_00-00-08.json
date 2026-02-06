@@ -1,0 +1,403 @@
+{
+  "updatedAt": "2026-02-06T21:58:25.611Z",
+  "createdAt": "2026-02-06T19:07:54.402Z",
+  "id": "T4amaL9X8Z9vZG7Q",
+  "name": "API - Transcribe Podcast",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "transcribe-podcast-789",
+      "parameters": {
+        "path": "transcribe-podcast",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-1",
+      "name": "Get Audio URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const audioUrl = $input.first().json.query.audioUrl;\nconst podcastId = $input.first().json.query.podcastId;\n\nif (!audioUrl) {\n  return [{ json: { error: 'audioUrl parameter required' } }];\n}\n\nreturn [{ json: { audioUrl, podcastId: podcastId || 'unknown' } }];"
+      }
+    },
+    {
+      "id": "http-1",
+      "name": "Download Audio",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        650,
+        300
+      ],
+      "parameters": {
+        "url": "={{ $json.audioUrl }}",
+        "method": "GET",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true
+            }
+          },
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "http-2",
+      "name": "Send to Whisper",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        850,
+        300
+      ],
+      "parameters": {
+        "url": "http://whisper-transcription:9000/asr?output=json&task=transcribe&language=en",
+        "method": "POST",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "audio_file",
+              "parameterType": "formBinaryData",
+              "inputDataFieldName": "data"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        }
+      }
+    },
+    {
+      "id": "code-2",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1050,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const whisperResponse = $input.first().json;\nconst podcastId = $('Get Audio URL').first().json.podcastId;\n\n// Parse the response if it's a string\nlet parsed = whisperResponse;\nif (typeof whisperResponse === 'string') {\n  try {\n    parsed = JSON.parse(whisperResponse);\n  } catch (e) {\n    return [{ json: { transcript: whisperResponse, podcastId } }];\n  }\n}\n\n// Check if we have segments array\nif (parsed.segments && Array.isArray(parsed.segments)) {\n  // Extract only text from segments\n  const transcript = parsed.segments\n    .map(seg => seg.text)\n    .join('')\n    .trim();\n  return [{ json: { transcript, podcastId } }];\n}\n\n// Fallback to text field or stringify\nif (parsed.text) {\n  return [{ json: { transcript: parsed.text, podcastId } }];\n}\n\nreturn [{ json: { transcript: 'No transcript available', podcastId } }];"
+      }
+    },
+    {
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Audio URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Audio URL": {
+      "main": [
+        [
+          {
+            "node": "Download Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Audio": {
+      "main": [
+        [
+          {
+            "node": "Send to Whisper",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send to Whisper": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "2246def6-bea4-4955-a5c9-4df450d0dbdf",
+  "activeVersionId": "2246def6-bea4-4955-a5c9-4df450d0dbdf",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-06T19:07:54.402Z",
+      "createdAt": "2026-02-06T19:07:54.402Z",
+      "role": "workflow:owner",
+      "workflowId": "T4amaL9X8Z9vZG7Q",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-06T21:58:25.615Z",
+    "createdAt": "2026-02-06T21:58:25.615Z",
+    "versionId": "2246def6-bea4-4955-a5c9-4df450d0dbdf",
+    "workflowId": "T4amaL9X8Z9vZG7Q",
+    "nodes": [
+      {
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          250,
+          300
+        ],
+        "webhookId": "transcribe-podcast-789",
+        "parameters": {
+          "path": "transcribe-podcast",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "code-1",
+        "name": "Get Audio URL",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          450,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const audioUrl = $input.first().json.query.audioUrl;\nconst podcastId = $input.first().json.query.podcastId;\n\nif (!audioUrl) {\n  return [{ json: { error: 'audioUrl parameter required' } }];\n}\n\nreturn [{ json: { audioUrl, podcastId: podcastId || 'unknown' } }];"
+        }
+      },
+      {
+        "id": "http-1",
+        "name": "Download Audio",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          650,
+          300
+        ],
+        "parameters": {
+          "url": "={{ $json.audioUrl }}",
+          "method": "GET",
+          "options": {
+            "redirect": {
+              "redirect": {
+                "followRedirects": true
+              }
+            },
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            },
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "http-2",
+        "name": "Send to Whisper",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          850,
+          300
+        ],
+        "parameters": {
+          "url": "http://whisper-transcription:9000/asr?output=json&task=transcribe&language=en",
+          "method": "POST",
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "audio_file",
+                "parameterType": "formBinaryData",
+                "inputDataFieldName": "data"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 600000
+          }
+        }
+      },
+      {
+        "id": "code-2",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1050,
+          300
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const whisperResponse = $input.first().json;\nconst podcastId = $('Get Audio URL').first().json.podcastId;\n\n// Parse the response if it's a string\nlet parsed = whisperResponse;\nif (typeof whisperResponse === 'string') {\n  try {\n    parsed = JSON.parse(whisperResponse);\n  } catch (e) {\n    return [{ json: { transcript: whisperResponse, podcastId } }];\n  }\n}\n\n// Check if we have segments array\nif (parsed.segments && Array.isArray(parsed.segments)) {\n  // Extract only text from segments\n  const transcript = parsed.segments\n    .map(seg => seg.text)\n    .join('')\n    .trim();\n  return [{ json: { transcript, podcastId } }];\n}\n\n// Fallback to text field or stringify\nif (parsed.text) {\n  return [{ json: { transcript: parsed.text, podcastId } }];\n}\n\nreturn [{ json: { transcript: 'No transcript available', podcastId } }];"
+        }
+      },
+      {
+        "id": "respond-1",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          1250,
+          300
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Get Audio URL",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Audio URL": {
+        "main": [
+          [
+            {
+              "node": "Download Audio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Download Audio": {
+        "main": [
+          [
+            {
+              "node": "Send to Whisper",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send to Whisper": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
