@@ -1,0 +1,622 @@
+{
+  "updatedAt": "2025-12-25T21:46:38.905Z",
+  "createdAt": "2025-12-22T22:18:45.975Z",
+  "id": "akpa4wrakuKIIuQA",
+  "name": "Collect News - Fixed & Optimized",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "id": "c6651262-4974-4d3d-b3f5-c92e30a0d076",
+      "name": "Daily at 8 AM",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        10464,
+        3760
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://techcrunch.com/feed/",
+        "options": {}
+      },
+      "id": "c5938007-51e0-457b-8a2c-bd5ee015634e",
+      "name": "TechCrunch RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        10688,
+        3664
+      ]
+    },
+    {
+      "parameters": {
+        "url": "http://feeds.bbci.co.uk/news/rss.xml",
+        "options": {}
+      },
+      "id": "a89b0236-0003-470e-811a-fc85fb3e9295",
+      "name": "BBC News RSS",
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1,
+      "position": [
+        10688,
+        3856
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combinationMode": "multiplex",
+        "options": {}
+      },
+      "id": "20924616-f5c6-4d30-af5f-4c4117c4b208",
+      "name": "Merge Both Sources",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 2.1,
+      "position": [
+        10912,
+        3760
+      ]
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "id": "042d4e64-1e6e-4e36-9d0a-2498b12037c2",
+      "name": "Limit to 10 News",
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        11136,
+        3760
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ 'https://r.jina.ai/' + $json.link }}",
+        "options": {
+          "batching": {
+            "batch": {
+              "batchSize": 1,
+              "batchInterval": 5000
+            }
+          },
+          "response": {},
+          "timeout": 30000
+        }
+      },
+      "id": "bdae153c-e585-4a20-854a-209a0d51a28c",
+      "name": "Jina Reader",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        11360,
+        3760
+      ],
+      "retryOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return $input.all().map(item => {\n  // 1. ПОЛУЧЕНИЕ ДАННЫХ ИЗ RSS\n  // Используем имя ноды \"Limit to 10 News\" (проверьте, чтобы оно совпадало на холсте)\n  const rssData = item.pairedItem ? $(\"Limit to 10 News\").all()[item.pairedItem.item].json : {};\n  \n  // Получаем текст, который прислал Jina Reader\n  let rawText = typeof item.json === 'string' ? item.json : (item.json.data || item.json.text || \"\");\n\n  // 2. ГЛУБОКАЯ ОЧИСТКА ТЕКСТА\n  let cleanText = rawText\n    // Удаляем технические заголовки Jina в самом начале (URL Source и прочее)\n    .replace(/^(Title|URL Source|Published Time):.*\\n?/gm, \"\") \n    \n    // Удаляем меню навигации (Home * News * Sport и так далее)\n    .replace(/Home\\s+\\*\\s+News\\s+\\*\\s+Sport[\\s\\S]*?Newsletters/gi, \"\")\n    .replace(/Home\\nNews\\nSport[\\s\\S]*?Watch Live/gi, \"\")\n    \n    // Удаляем служебные кнопки и рекламу\n    .replace(/Skip to content|Advertisement|Watch Live|Share Save|Subscribe|Sign In/gi, \"\")\n    \n    // Удаляем Markdown изображения и подписи к ним\n    .replace(/!\\[.*?\\]\\(.*?\\)/g, \"\")\n    .replace(/Image \\d+:.*?(?=\\n|$)/g, \"\")\n    \n    // Удаляем ссылки Markdown, оставляя только текст внутри скобок\n    // Пример: [BBC News](http...) превратится в просто BBC News\n    .replace(/\\[([^\\]]+)\\]\\([^)]+\\)/g, \"$1\")\n    \n    // Отрезаем футеры (Related, More from the BBC и т.д.)\n    .replace(/(Related|More from the BBC|BBC in other languages|Copyright)[\\s\\S]*/gi, \"\");\n\n  // 3. ФИНАЛЬНОЕ ФОРМАТИРОВАНИЕ\n  // Убираем лишние пробелы и пустые строки (оставляем максимум двойной перенос)\n  cleanText = cleanText.trim().replace(/\\n{3,}/g, \"\\n\\n\");\n\n  // 4. ФОРМИРУЕМ ВЫХОДНОЙ ОБЪЕКТ\n  return {\n    json: {\n      title: rssData.title || \"Без заголовка\",\n      // Ограничиваем длину текста для базы (например, до 1000 слов), чтобы не перегружать БД\n      text: cleanText.split(/\\s+/).slice(0, 1000).join(\" \"), \n      url: rssData.link,\n      source: (rssData.link || \"\").includes(\"techcrunch\") ? \"TechCrunch\" : \"BBC News\",\n      published_date: rssData.isoDate || rssData.pubDate,\n      collected_date: new Date().toISOString(),\n      has_valid_text: cleanText.length > 250 // Проверка, что текст не пустой\n    }\n  };\n});"
+      },
+      "id": "6a31b6ef-c42b-453c-b139-1e4729523dab",
+      "name": "Extract Text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        11584,
+        3760
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.has_valid_text }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "42b624db-9902-49ee-b42a-5409279fb90f",
+      "name": "Valid Text?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        11808,
+        3760
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "needsFallback": true,
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are a professional news editor. Your task is to clean the news text from clutter (ads, navigation menus, extra symbols), correct grammar errors, and return ONLY the clean text ready for publication."
+            }
+          ]
+        }
+      },
+      "id": "725f723c-5d35-434d-9c53-275e338454e5",
+      "name": "AI Cleaning (Gemini)",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.4,
+      "position": [
+        12208,
+        3408
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        12032,
+        3760
+      ],
+      "id": "9da7dc5d-8f00-4b4a-994e-8c4c15dd8613",
+      "name": "Loop Over Items"
+    },
+    {
+      "parameters": {
+        "amount": 1
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        13440,
+        3760
+      ],
+      "id": "db22dc8e-613a-4d96-a56c-fccb407f4408",
+      "name": "Wait",
+      "webhookId": "489972ef-f10b-432f-956a-56ebe7134c06"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        12768,
+        3504
+      ],
+      "id": "053c9520-0813-445b-80db-0231f76849d5",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        12288,
+        3616
+      ],
+      "id": "6007ab8d-f5e1-49c0-abff-d57e1da28952",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "zI8kGOIzPCNm14vJ",
+          "name": "OpenAi account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "82b225ed-7a15-42ab-a0bd-9e5f4b8b184c",
+              "name": "clean_content",
+              "value": "={{ $json.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        12560,
+        3408
+      ],
+      "id": "d445e602-137b-4585-b6b8-5efbde786a39",
+      "name": "Edit Fields",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "dataTableId": {
+          "__rl": true,
+          "value": "MWNgETzBSi4cAIFo",
+          "mode": "list",
+          "cachedResultName": "News",
+          "cachedResultUrl": "/projects/jNVg0G6i9vrm7uSd/datatables/MWNgETzBSi4cAIFo"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "url",
+              "keyValue": "={{ $json.url }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "isDelivered": false,
+            "publishedDate": "={{ $json.published_date }}",
+            "title": "={{ $json.title }}",
+            "text": "={{ $json.text }}",
+            "category": "={{ $json.source }}",
+            "url": "={{ $json.url }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "publishedDate",
+              "displayName": "publishedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "isDelivered",
+              "displayName": "isDelivered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        12976,
+        3504
+      ],
+      "id": "247ee86c-ae5d-48ef-881c-b44bbc560a32",
+      "name": "Upsert row(s)"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        12176,
+        3632
+      ],
+      "id": "71c782ef-82a6-4029-bfa7-0bff3eeb2853",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LkIHzVT9REIIoRbA",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Daily at 8 AM": {
+      "main": [
+        [
+          {
+            "node": "TechCrunch RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "BBC News RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TechCrunch RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge Both Sources",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "BBC News RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge Both Sources",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge Both Sources": {
+      "main": [
+        [
+          {
+            "node": "Limit to 10 News",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit to 10 News": {
+      "main": [
+        [
+          {
+            "node": "Jina Reader",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Jina Reader": {
+      "main": [
+        [
+          {
+            "node": "Extract Text",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Text": {
+      "main": [
+        [
+          {
+            "node": "Valid Text?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Valid Text?": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Cleaning (Gemini)": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items": {
+      "main": [
+        [],
+        [
+          {
+            "node": "AI Cleaning (Gemini)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Upsert row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Cleaning (Gemini)",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Upsert row(s)": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Cleaning (Gemini)",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": {
+    "node:Daily at 8 AM": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "b64397ea-8cbe-4498-a70d-eed56e45613c",
+  "activeVersionId": null,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2025-12-22T22:18:45.975Z",
+      "createdAt": "2025-12-22T22:18:45.975Z",
+      "role": "workflow:owner",
+      "workflowId": "akpa4wrakuKIIuQA",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
