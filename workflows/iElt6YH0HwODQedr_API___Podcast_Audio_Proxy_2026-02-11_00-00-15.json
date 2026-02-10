@@ -1,0 +1,162 @@
+{
+  "updatedAt": "2026-02-06T17:20:08.928Z",
+  "createdAt": "2026-02-06T17:17:32.559Z",
+  "id": "iElt6YH0HwODQedr",
+  "name": "API - Podcast Audio Proxy",
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "webhookId": "podcast-audio-proxy-123",
+      "parameters": {
+        "path": "podcast-audio",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-1",
+      "name": "Get Audio URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const url = $input.first().json.query.url;\n\nif (!url) {\n  return [{ json: { error: 'URL parameter required' } }];\n}\n\nreturn [{ json: { originalUrl: url } }];"
+      }
+    },
+    {
+      "id": "http-1",
+      "name": "Follow Redirect",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        650,
+        300
+      ],
+      "parameters": {
+        "url": "={{ $json.originalUrl }}",
+        "method": "HEAD",
+        "options": {
+          "redirect": {
+            "redirect": {
+              "followRedirects": true,
+              "maxRedirects": 5
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "code-2",
+      "name": "Extract Final URL",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        850,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst finalUrl = response.headers?.location || response.url || $('Get Audio URL').first().json.originalUrl;\n\nreturn [{ json: { audioUrl: finalUrl } }];"
+      }
+    },
+    {
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1050,
+        300
+      ],
+      "parameters": {
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Audio URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Audio URL": {
+      "main": [
+        [
+          {
+            "node": "Follow Redirect",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Follow Redirect": {
+      "main": [
+        [
+          {
+            "node": "Extract Final URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Final URL": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "9c2ffceb-61be-45b9-812b-0c8fda6d00db",
+  "activeVersionId": null,
+  "triggerCount": 0,
+  "shared": [
+    {
+      "updatedAt": "2026-02-06T17:17:32.559Z",
+      "createdAt": "2026-02-06T17:17:32.559Z",
+      "role": "workflow:owner",
+      "workflowId": "iElt6YH0HwODQedr",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": null,
+  "tags": []
+}
