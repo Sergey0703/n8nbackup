@@ -1,0 +1,333 @@
+{
+  "updatedAt": "2026-01-25T21:21:01.785Z",
+  "createdAt": "2026-01-25T21:01:46.703Z",
+  "id": "bqo0Dx6ceGrDXSsN",
+  "name": "API - Get Quiz Words",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "quiz-words",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "quiz-words-webhook-123"
+    },
+    {
+      "id": "mongo-target",
+      "name": "MongoDB: Get Target Words",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ],
+      "parameters": {
+        "collection": "words",
+        "query": "={ \"stage\": \"repeat\" }",
+        "options": {
+          "limit": 10
+        }
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "mongo-distractors",
+      "name": "MongoDB: Get Distractors",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ],
+      "parameters": {
+        "collection": "words",
+        "query": "={ \"stage\": \"repeat\" }",
+        "options": {
+          "limit": 40
+        }
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "code-format",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        672,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const targets = $('MongoDB: Get Target Words').all().map(item => {\n  const data = item.json;\n  const wordLower = data.word.toLowerCase();\n  const audioUrl = `https://vocab.aimediaflow.net/audio/${encodeURIComponent(wordLower)}.mp3`;\n  \n  return {\n    _id: data._id,\n    word: data.word,\n    translate: data.translate,\n    transcript: data.transcript || '',\n    audio: audioUrl\n  };\n});\n\nconst distractors = $('MongoDB: Get Distractors').all().map(item => {\n  const data = item.json;\n  return {\n    _id: data._id,\n    word: data.word,\n    translate: data.translate\n  };\n});\n\nreturn [{ json: { \n  targets: targets,\n  distractors: distractors,\n  total: targets.length\n} }];"
+      }
+    },
+    {
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Get Target Words",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Get Target Words": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Get Distractors",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Get Distractors": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "4413d51e-080c-48de-926f-5199c5790b52",
+  "activeVersionId": "4413d51e-080c-48de-926f-5199c5790b52",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-25T21:01:46.703Z",
+      "createdAt": "2026-01-25T21:01:46.703Z",
+      "role": "workflow:owner",
+      "workflowId": "bqo0Dx6ceGrDXSsN",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-01-25T21:21:01.790Z",
+    "createdAt": "2026-01-25T21:21:01.790Z",
+    "versionId": "4413d51e-080c-48de-926f-5199c5790b52",
+    "workflowId": "bqo0Dx6ceGrDXSsN",
+    "nodes": [
+      {
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "path": "quiz-words",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "quiz-words-webhook-123"
+      },
+      {
+        "id": "mongo-target",
+        "name": "MongoDB: Get Target Words",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          224,
+          0
+        ],
+        "parameters": {
+          "collection": "words",
+          "query": "={ \"stage\": \"repeat\" }",
+          "options": {
+            "limit": 10
+          }
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "mongo-distractors",
+        "name": "MongoDB: Get Distractors",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          448,
+          0
+        ],
+        "parameters": {
+          "collection": "words",
+          "query": "={ \"stage\": \"repeat\" }",
+          "options": {
+            "limit": 40
+          }
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "code-format",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          672,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const targets = $('MongoDB: Get Target Words').all().map(item => {\n  const data = item.json;\n  const wordLower = data.word.toLowerCase();\n  const audioUrl = `https://vocab.aimediaflow.net/audio/${encodeURIComponent(wordLower)}.mp3`;\n  \n  return {\n    _id: data._id,\n    word: data.word,\n    translate: data.translate,\n    transcript: data.transcript || '',\n    audio: audioUrl\n  };\n});\n\nconst distractors = $('MongoDB: Get Distractors').all().map(item => {\n  const data = item.json;\n  return {\n    _id: data._id,\n    word: data.word,\n    translate: data.translate\n  };\n});\n\nreturn [{ json: { \n  targets: targets,\n  distractors: distractors,\n  total: targets.length\n} }];"
+        }
+      },
+      {
+        "id": "respond-1",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          896,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Get Target Words",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Get Target Words": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Get Distractors",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Get Distractors": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
