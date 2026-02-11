@@ -1,0 +1,349 @@
+{
+  "updatedAt": "2026-02-11T21:53:18.487Z",
+  "createdAt": "2026-02-11T20:06:25.503Z",
+  "id": "srKn9HgCFDO7TK8c",
+  "name": "API - Save Word",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-save",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "save-word-webhook-v1",
+      "parameters": {
+        "path": "save-word",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-validate",
+      "name": "Validate & Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst word = (body.word || '').trim();\nconst translate = (body.translate || '').trim();\n\nif (!word) throw new Error('word is required');\nif (!translate) throw new Error('translate is required');\n\nfunction uuid() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst wordLower = word.toLowerCase();\n\n// Google TTS URLs for English and Russian\nconst audioEn = `[sound:https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(wordLower)}&tl=en&client=tw-ob]`;\nconst audioRu = `[sound:https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(translate)}&tl=ru&client=tw-ob]`;\n\nreturn [{ json: {\n  word: wordLower,\n  translate,\n  transcript: (body.transcript || '').replace(/^\\/|\\/$/g, ''),\n  partOfSpeech: body.partOfSpeech || '',\n  level: body.level || '',\n  stage: 'repeat',\n  code: uuid(),\n  sound: audioEn,\n  soundRu: audioRu\n} }];"
+      }
+    },
+    {
+      "id": "set-date",
+      "name": "Set Train Date",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "trainDate",
+              "value": "={{ new Date() }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "mongo-insert",
+      "name": "MongoDB: Save Word",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "operation": "insert",
+        "collection": "words",
+        "fields": "word,translate,transcript,partOfSpeech,level,stage,trainDate,code,sound,soundRu"
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "respond-save",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, word: $('Validate & Prepare').first().json.word } }}",
+        "options": {
+          "responseCode": 201,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Prepare": {
+      "main": [
+        [
+          {
+            "node": "Set Train Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Train Date": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Save Word",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Save Word": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "56d74cea-e888-415e-96cd-a65e73b68145",
+  "activeVersionId": "56d74cea-e888-415e-96cd-a65e73b68145",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-11T20:06:25.503Z",
+      "createdAt": "2026-02-11T20:06:25.503Z",
+      "role": "workflow:owner",
+      "workflowId": "srKn9HgCFDO7TK8c",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-11T21:53:18.489Z",
+    "createdAt": "2026-02-11T21:53:18.489Z",
+    "versionId": "56d74cea-e888-415e-96cd-a65e73b68145",
+    "workflowId": "srKn9HgCFDO7TK8c",
+    "nodes": [
+      {
+        "id": "webhook-save",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "save-word-webhook-v1",
+        "parameters": {
+          "path": "save-word",
+          "httpMethod": "POST",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "code-validate",
+        "name": "Validate & Prepare",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const body = $input.first().json.body || {};\nconst word = (body.word || '').trim();\nconst translate = (body.translate || '').trim();\n\nif (!word) throw new Error('word is required');\nif (!translate) throw new Error('translate is required');\n\nfunction uuid() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst wordLower = word.toLowerCase();\n\n// Google TTS URLs for English and Russian\nconst audioEn = `[sound:https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(wordLower)}&tl=en&client=tw-ob]`;\nconst audioRu = `[sound:https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(translate)}&tl=ru&client=tw-ob]`;\n\nreturn [{ json: {\n  word: wordLower,\n  translate,\n  transcript: (body.transcript || '').replace(/^\\/|\\/$/g, ''),\n  partOfSpeech: body.partOfSpeech || '',\n  level: body.level || '',\n  stage: 'repeat',\n  code: uuid(),\n  sound: audioEn,\n  soundRu: audioRu\n} }];"
+        }
+      },
+      {
+        "id": "set-date",
+        "name": "Set Train Date",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "name": "trainDate",
+                "value": "={{ new Date() }}",
+                "type": "object"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "mongo-insert",
+        "name": "MongoDB: Save Word",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "operation": "insert",
+          "collection": "words",
+          "fields": "word,translate,transcript,partOfSpeech,level,stage,trainDate,code,sound,soundRu"
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "respond-save",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { success: true, word: $('Validate & Prepare').first().json.word } }}",
+          "options": {
+            "responseCode": 201,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "POST, OPTIONS"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Validate & Prepare",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate & Prepare": {
+        "main": [
+          [
+            {
+              "node": "Set Train Date",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Train Date": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Save Word",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Save Word": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
