@@ -1,0 +1,137 @@
+{
+  "updatedAt": "2026-02-11T21:59:01.788Z",
+  "createdAt": "2026-02-11T21:59:01.788Z",
+  "id": "NQb4k3vRWivIBHvl",
+  "name": "TEMP - Check Kokoro Voices",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "wh",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "check-kokoro-v1",
+      "parameters": {
+        "path": "check-kokoro",
+        "httpMethod": "GET",
+        "responseMode": "lastNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "http",
+      "name": "Get Voices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "url": "http://kokoro-tts:8880/v1/audio/voices",
+        "method": "GET",
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Voices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "847c9bfc-54ab-47d2-ab0d-81be14db3cd0",
+  "activeVersionId": "847c9bfc-54ab-47d2-ab0d-81be14db3cd0",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-11T21:59:01.788Z",
+      "createdAt": "2026-02-11T21:59:01.788Z",
+      "role": "workflow:owner",
+      "workflowId": "NQb4k3vRWivIBHvl",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-11T21:59:01.804Z",
+    "createdAt": "2026-02-11T21:59:01.804Z",
+    "versionId": "847c9bfc-54ab-47d2-ab0d-81be14db3cd0",
+    "workflowId": "NQb4k3vRWivIBHvl",
+    "nodes": [
+      {
+        "id": "wh",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "check-kokoro-v1",
+        "parameters": {
+          "path": "check-kokoro",
+          "httpMethod": "GET",
+          "responseMode": "lastNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "http",
+        "name": "Get Voices",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "url": "http://kokoro-tts:8880/v1/audio/voices",
+          "method": "GET",
+          "options": {}
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Get Voices",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
