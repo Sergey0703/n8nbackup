@@ -1,0 +1,305 @@
+{
+  "updatedAt": "2026-02-06T17:42:41.941Z",
+  "createdAt": "2026-02-05T21:43:29.913Z",
+  "id": "yWkkS2dSlx4tNlID",
+  "name": "API - Get VOA Podcasts",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "voa-podcasts-webhook-123",
+      "parameters": {
+        "path": "voa-podcasts",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "http-1",
+      "name": "Fetch RSS Feed",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "url": "https://podcasts.files.bbci.co.uk/p02nq0gn.rss",
+        "method": "GET",
+        "options": {}
+      }
+    },
+    {
+      "id": "xml-1",
+      "name": "Parse XML",
+      "type": "n8n-nodes-base.xml",
+      "typeVersion": 1,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "mode": "xmlToJson",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-1",
+      "name": "Extract Episodes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const xml = $input.first().json;\nconst items = xml.rss.channel.item;\nconst now = new Date();\nconst sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\n\nconst episodes = items\n  .map(item => {\n    const pubDate = new Date(item.pubDate);\n    return {\n      title: item.title,\n      date: pubDate.toISOString().split('T')[0],\n      dateTime: pubDate.toISOString(),\n      audioUrl: item.enclosure?.url || '',\n      duration: item['itunes:duration'] || '',\n      description: item.description || '',\n      link: item.link || '',\n      guid: item.guid || ''\n    };\n  })\n  .filter(ep => new Date(ep.dateTime) >= sevenDaysAgo)\n  .sort((a, b) => b.dateTime.localeCompare(a.dateTime));\n\nreturn [{ json: { episodes, total: episodes.length } }];"
+      }
+    },
+    {
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Fetch RSS Feed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch RSS Feed": {
+      "main": [
+        [
+          {
+            "node": "Parse XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse XML": {
+      "main": [
+        [
+          {
+            "node": "Extract Episodes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Episodes": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "2d03c000-1b2c-4936-97c2-98ad5836cba7",
+  "activeVersionId": "2d03c000-1b2c-4936-97c2-98ad5836cba7",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-05T21:43:29.913Z",
+      "createdAt": "2026-02-05T21:43:29.913Z",
+      "role": "workflow:owner",
+      "workflowId": "yWkkS2dSlx4tNlID",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-06T17:42:41.944Z",
+    "createdAt": "2026-02-06T17:42:41.944Z",
+    "versionId": "2d03c000-1b2c-4936-97c2-98ad5836cba7",
+    "workflowId": "yWkkS2dSlx4tNlID",
+    "nodes": [
+      {
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "voa-podcasts-webhook-123",
+        "parameters": {
+          "path": "voa-podcasts",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "http-1",
+        "name": "Fetch RSS Feed",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "url": "https://podcasts.files.bbci.co.uk/p02nq0gn.rss",
+          "method": "GET",
+          "options": {}
+        }
+      },
+      {
+        "id": "xml-1",
+        "name": "Parse XML",
+        "type": "n8n-nodes-base.xml",
+        "typeVersion": 1,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "mode": "xmlToJson",
+          "options": {}
+        }
+      },
+      {
+        "id": "code-1",
+        "name": "Extract Episodes",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const xml = $input.first().json;\nconst items = xml.rss.channel.item;\nconst now = new Date();\nconst sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);\n\nconst episodes = items\n  .map(item => {\n    const pubDate = new Date(item.pubDate);\n    return {\n      title: item.title,\n      date: pubDate.toISOString().split('T')[0],\n      dateTime: pubDate.toISOString(),\n      audioUrl: item.enclosure?.url || '',\n      duration: item['itunes:duration'] || '',\n      description: item.description || '',\n      link: item.link || '',\n      guid: item.guid || ''\n    };\n  })\n  .filter(ep => new Date(ep.dateTime) >= sevenDaysAgo)\n  .sort((a, b) => b.dateTime.localeCompare(a.dateTime));\n\nreturn [{ json: { episodes, total: episodes.length } }];"
+        }
+      },
+      {
+        "id": "respond-1",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Fetch RSS Feed",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Fetch RSS Feed": {
+        "main": [
+          [
+            {
+              "node": "Parse XML",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Parse XML": {
+        "main": [
+          [
+            {
+              "node": "Extract Episodes",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Extract Episodes": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
