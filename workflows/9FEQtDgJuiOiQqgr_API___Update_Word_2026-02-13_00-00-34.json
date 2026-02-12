@@ -1,0 +1,281 @@
+{
+  "updatedAt": "2026-02-12T19:20:19.582Z",
+  "createdAt": "2026-02-12T19:20:19.582Z",
+  "id": "9FEQtDgJuiOiQqgr",
+  "name": "API - Update Word",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-upd",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "update-word",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-upd",
+      "name": "Validate & Update",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst wordId = (body.wordId || '').trim();\nif (!wordId) throw new Error('wordId is required');\n\nconst updates = {};\nif (body.translate !== undefined) updates.translate = body.translate.trim();\nif (body.transcript !== undefined) updates.transcript = body.transcript.trim();\nif (body.partOfSpeech !== undefined) updates.partOfSpeech = body.partOfSpeech.trim();\nif (body.level !== undefined) updates.level = body.level.trim();\n\nif (Object.keys(updates).length === 0) throw new Error('No fields to update');\n\nreturn [{ json: { wordId, updates } }];"
+      }
+    },
+    {
+      "id": "mongo-upd",
+      "name": "MongoDB: Update Word",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "collection": "words",
+        "updateKey": "=_id",
+        "fields": "={{ Object.keys($json.updates).join(',') }}",
+        "options": {}
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "respond-upd",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Update": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Update Word",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Update Word": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "580f7b5a-65bf-4720-b2de-e4fa1ee047bc",
+  "activeVersionId": "580f7b5a-65bf-4720-b2de-e4fa1ee047bc",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-12T19:20:19.582Z",
+      "createdAt": "2026-02-12T19:20:19.582Z",
+      "role": "workflow:owner",
+      "workflowId": "9FEQtDgJuiOiQqgr",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-12T19:20:19.594Z",
+    "createdAt": "2026-02-12T19:20:19.594Z",
+    "versionId": "580f7b5a-65bf-4720-b2de-e4fa1ee047bc",
+    "workflowId": "9FEQtDgJuiOiQqgr",
+    "nodes": [
+      {
+        "id": "webhook-upd",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "path": "update-word",
+          "httpMethod": "POST",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "code-upd",
+        "name": "Validate & Update",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const body = $input.first().json.body || {};\nconst wordId = (body.wordId || '').trim();\nif (!wordId) throw new Error('wordId is required');\n\nconst updates = {};\nif (body.translate !== undefined) updates.translate = body.translate.trim();\nif (body.transcript !== undefined) updates.transcript = body.transcript.trim();\nif (body.partOfSpeech !== undefined) updates.partOfSpeech = body.partOfSpeech.trim();\nif (body.level !== undefined) updates.level = body.level.trim();\n\nif (Object.keys(updates).length === 0) throw new Error('No fields to update');\n\nreturn [{ json: { wordId, updates } }];"
+        }
+      },
+      {
+        "id": "mongo-upd",
+        "name": "MongoDB: Update Word",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.2,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "operation": "update",
+          "collection": "words",
+          "updateKey": "=_id",
+          "fields": "={{ Object.keys($json.updates).join(',') }}",
+          "options": {}
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "respond-upd",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { success: true } }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "POST, OPTIONS"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Validate & Update",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate & Update": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Update Word",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Update Word": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
