@@ -1,0 +1,267 @@
+{
+  "updatedAt": "2026-02-12T20:02:39.091Z",
+  "createdAt": "2026-02-12T19:19:58.863Z",
+  "id": "rTo9WhR0sDAn2YkV",
+  "name": "API - Get Vocab Page",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-vocab",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "path": "vocab-search",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "vocab-search-webhook-v1"
+    },
+    {
+      "id": "mongo-words",
+      "name": "MongoDB: Get Words",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "collection": "words",
+        "query": "={{ (() => { const search = ($input.first().json.query.search || '').trim(); return search ? JSON.stringify({ '$or': [{ 'word': { '$regex': search, '$options': 'i' } }, { 'translate': { '$regex': search, '$options': 'i' } }] }) : '{}'; })() }}",
+        "options": {
+          "limit": 10000,
+          "sort": "{ \"word\": 1 }"
+        }
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "code-format",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const q = $('Webhook').first().json.query || {};\nconst page = Math.max(1, parseInt(q.page) || 1);\nconst limit = 50;\n\nconst allWords = $('MongoDB: Get Words').all().map(item => {\n  const d = item.json;\n  const w = (d.word || '').toLowerCase();\n  const safe = w.replace(/[^a-z0-9]/gi, '_').replace(/_+/g,'_').replace(/^_|_$/g,'');\n  return {\n    _id: d._id,\n    word: d.word,\n    translate: d.translate || '',\n    transcript: d.transcript || '',\n    partOfSpeech: d.partOfSpeech || '',\n    level: d.level || '',\n    stage: d.stage || 'new',\n    sound: d.sound || `https://vocab.aimediaflow.net/audio/${safe}.mp3`,\n    soundRu: d.soundRu || `https://vocab.aimediaflow.net/audio-ru/${safe}.mp3`\n  };\n});\n\nconst total = allWords.length;\nconst totalPages = Math.max(1, Math.ceil(total / limit));\nconst safePage = Math.min(page, totalPages);\nconst words = allWords.slice((safePage - 1) * limit, safePage * limit);\n\nreturn [{ json: {\n  words,\n  total,\n  page: safePage,\n  totalPages,\n  limit,\n  hasNext: safePage < totalPages,\n  hasPrev: safePage > 1\n} }];"
+      }
+    },
+    {
+      "id": "respond-vocab",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Get Words",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Get Words": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "a5d112f9-9c65-4a53-9c31-3fd14ba71b9b",
+  "activeVersionId": "a5d112f9-9c65-4a53-9c31-3fd14ba71b9b",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-12T19:19:58.863Z",
+      "createdAt": "2026-02-12T19:19:58.863Z",
+      "role": "workflow:owner",
+      "workflowId": "rTo9WhR0sDAn2YkV",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-12T20:02:39.094Z",
+    "createdAt": "2026-02-12T20:02:39.094Z",
+    "versionId": "a5d112f9-9c65-4a53-9c31-3fd14ba71b9b",
+    "workflowId": "rTo9WhR0sDAn2YkV",
+    "nodes": [
+      {
+        "id": "webhook-vocab",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "parameters": {
+          "path": "vocab-search",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "vocab-search-webhook-v1"
+      },
+      {
+        "id": "mongo-words",
+        "name": "MongoDB: Get Words",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "collection": "words",
+          "query": "={{ (() => { const search = ($input.first().json.query.search || '').trim(); return search ? JSON.stringify({ '$or': [{ 'word': { '$regex': search, '$options': 'i' } }, { 'translate': { '$regex': search, '$options': 'i' } }] }) : '{}'; })() }}",
+          "options": {
+            "limit": 10000,
+            "sort": "{ \"word\": 1 }"
+          }
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "code-format",
+        "name": "Format Response",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const q = $('Webhook').first().json.query || {};\nconst page = Math.max(1, parseInt(q.page) || 1);\nconst limit = 50;\n\nconst allWords = $('MongoDB: Get Words').all().map(item => {\n  const d = item.json;\n  const w = (d.word || '').toLowerCase();\n  const safe = w.replace(/[^a-z0-9]/gi, '_').replace(/_+/g,'_').replace(/^_|_$/g,'');\n  return {\n    _id: d._id,\n    word: d.word,\n    translate: d.translate || '',\n    transcript: d.transcript || '',\n    partOfSpeech: d.partOfSpeech || '',\n    level: d.level || '',\n    stage: d.stage || 'new',\n    sound: d.sound || `https://vocab.aimediaflow.net/audio/${safe}.mp3`,\n    soundRu: d.soundRu || `https://vocab.aimediaflow.net/audio-ru/${safe}.mp3`\n  };\n});\n\nconst total = allWords.length;\nconst totalPages = Math.max(1, Math.ceil(total / limit));\nconst safePage = Math.min(page, totalPages);\nconst words = allWords.slice((safePage - 1) * limit, safePage * limit);\n\nreturn [{ json: {\n  words,\n  total,\n  page: safePage,\n  totalPages,\n  limit,\n  hasNext: safePage < totalPages,\n  hasPrev: safePage > 1\n} }];"
+        }
+      },
+      {
+        "id": "respond-vocab",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ $json }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Get Words",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Get Words": {
+        "main": [
+          [
+            {
+              "node": "Format Response",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Format Response": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
