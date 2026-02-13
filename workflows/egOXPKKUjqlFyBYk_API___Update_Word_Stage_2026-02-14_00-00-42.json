@@ -1,0 +1,269 @@
+{
+  "updatedAt": "2026-02-08T21:36:36.529Z",
+  "createdAt": "2026-02-08T21:19:16.718Z",
+  "id": "egOXPKKUjqlFyBYk",
+  "name": "API - Update Word Stage",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "path": "update-word-stage",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "update-word-stage-webhook"
+    },
+    {
+      "id": "code-get-params",
+      "name": "Get Parameters",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst wordId = item.query?.wordId || item.wordId;\nconst newStage = item.query?.stage || item.stage || 'new';\n\nif (!wordId) {\n  return [{ json: { error: 'wordId required' } }];\n}\n\nreturn [{ json: { _id: wordId, stage: newStage } }];"
+      }
+    },
+    {
+      "id": "mongo-update",
+      "name": "MongoDB: Update Stage",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        650,
+        300
+      ],
+      "parameters": {
+        "operation": "update",
+        "collection": "words",
+        "updateKey": "_id",
+        "fields": "stage",
+        "options": {}
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "respond-1",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        850,
+        300
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, wordId: $('Get Parameters').item.json.wordId, stage: $('Get Parameters').item.json.newStage } }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Parameters": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Update Stage",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Update Stage": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "fdd0a2ab-47c2-4df6-bce5-42eaf46a8801",
+  "activeVersionId": "fdd0a2ab-47c2-4df6-bce5-42eaf46a8801",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-08T21:19:16.718Z",
+      "createdAt": "2026-02-08T21:19:16.718Z",
+      "role": "workflow:owner",
+      "workflowId": "egOXPKKUjqlFyBYk",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-08T21:36:36.531Z",
+    "createdAt": "2026-02-08T21:36:36.531Z",
+    "versionId": "fdd0a2ab-47c2-4df6-bce5-42eaf46a8801",
+    "workflowId": "egOXPKKUjqlFyBYk",
+    "nodes": [
+      {
+        "id": "webhook-1",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {
+          "path": "update-word-stage",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "webhookId": "update-word-stage-webhook"
+      },
+      {
+        "id": "code-get-params",
+        "name": "Get Parameters",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          450,
+          300
+        ],
+        "parameters": {
+          "jsCode": "const item = $input.first().json;\nconst wordId = item.query?.wordId || item.wordId;\nconst newStage = item.query?.stage || item.stage || 'new';\n\nif (!wordId) {\n  return [{ json: { error: 'wordId required' } }];\n}\n\nreturn [{ json: { _id: wordId, stage: newStage } }];"
+        }
+      },
+      {
+        "id": "mongo-update",
+        "name": "MongoDB: Update Stage",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          650,
+          300
+        ],
+        "parameters": {
+          "operation": "update",
+          "collection": "words",
+          "updateKey": "_id",
+          "fields": "stage",
+          "options": {}
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "respond-1",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1,
+        "position": [
+          850,
+          300
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { success: true, wordId: $('Get Parameters').item.json.wordId, stage: $('Get Parameters').item.json.newStage } }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Get Parameters",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get Parameters": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Update Stage",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Update Stage": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
