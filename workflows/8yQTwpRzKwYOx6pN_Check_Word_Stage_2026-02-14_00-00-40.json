@@ -1,0 +1,149 @@
+{
+  "updatedAt": "2026-02-08T21:30:29.181Z",
+  "createdAt": "2026-02-08T21:29:30.649Z",
+  "id": "8yQTwpRzKwYOx6pN",
+  "name": "Check Word Stage",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "manual-1",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "path": "check-word",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "webhookId": "check-word-temp"
+    },
+    {
+      "id": "mongo-1",
+      "name": "MongoDB: Find Word",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        450,
+        300
+      ],
+      "parameters": {
+        "operation": "find",
+        "collection": "words",
+        "query": "={ \"word\": \"jaunty\" }",
+        "options": {}
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Find Word",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveDataErrorExecution": "all",
+    "saveDataSuccessExecution": "all",
+    "saveManualExecutions": true,
+    "saveExecutionProgress": true,
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "4a0798dd-5f0e-4be7-a127-f3d8b17ed112",
+  "activeVersionId": "4a0798dd-5f0e-4be7-a127-f3d8b17ed112",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-08T21:29:30.649Z",
+      "createdAt": "2026-02-08T21:29:30.649Z",
+      "role": "workflow:owner",
+      "workflowId": "8yQTwpRzKwYOx6pN",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-08T21:30:29.183Z",
+    "createdAt": "2026-02-08T21:30:29.183Z",
+    "versionId": "4a0798dd-5f0e-4be7-a127-f3d8b17ed112",
+    "workflowId": "8yQTwpRzKwYOx6pN",
+    "nodes": [
+      {
+        "id": "manual-1",
+        "name": "Manual Trigger",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [
+          250,
+          300
+        ],
+        "parameters": {
+          "path": "check-word",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "webhookId": "check-word-temp"
+      },
+      {
+        "id": "mongo-1",
+        "name": "MongoDB: Find Word",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          450,
+          300
+        ],
+        "parameters": {
+          "operation": "find",
+          "collection": "words",
+          "query": "={ \"word\": \"jaunty\" }",
+          "options": {}
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Manual Trigger": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Find Word",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
