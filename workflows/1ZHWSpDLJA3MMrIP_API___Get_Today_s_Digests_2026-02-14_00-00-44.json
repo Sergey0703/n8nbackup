@@ -1,0 +1,555 @@
+{
+  "updatedAt": "2026-02-04T21:39:34.331Z",
+  "createdAt": "2026-01-02T22:26:13.056Z",
+  "id": "1ZHWSpDLJA3MMrIP",
+  "name": "API - Get Today's Digests",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "path": "news/today",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "661f647f-e039-4769-89da-86aae98892db",
+      "name": "Webhook GET",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "0cad0ab0-c35d-43a4-8c60-e2c50544fa7c"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "value": "JnVde1xTjaVHMlMx",
+          "mode": "id"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyName": "createdAt",
+              "condition": "gte",
+              "keyValue": "={{ $now.minus({days: 7}).toISO() }}"
+            }
+          ]
+        },
+        "limit": 10
+      },
+      "id": "01d47436-6b21-4d09-a0f6-bd7c889c98cc",
+      "name": "Get News Table",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "update",
+        "dataTableId": {
+          "__rl": true,
+          "value": "JnVde1xTjaVHMlMx",
+          "mode": "list",
+          "cachedResultName": "DailyDigests",
+          "cachedResultUrl": "/projects/jNVg0G6i9vrm7uSd/datatables/JnVde1xTjaVHMlMx"
+        },
+        "filters": {
+          "conditions": [
+            {
+              "keyValue": "={{ $json.id }}"
+            }
+          ]
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "deliveredAt": "={{ $now }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "publishedDate",
+              "displayName": "publishedDate",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "title",
+              "displayName": "title",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "url",
+              "displayName": "url",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "isDelivered",
+              "displayName": "isDelivered",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": true
+            },
+            {
+              "id": "deliveredAt",
+              "displayName": "deliveredAt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1104,
+        0
+      ],
+      "id": "5f9532c4-642b-41b6-8902-53354ffbcd8a",
+      "name": "Update row(s)"
+    },
+    {
+      "parameters": {
+        "respondWith": "allIncomingItems",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        1552,
+        0
+      ],
+      "id": "36e139cb-4ee3-45ed-89d6-5d678cd13b0d",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        752,
+        0
+      ],
+      "id": "b3596a89-dde0-4c09-b1f5-ad6193b2f264",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "sortFieldsUi": {
+          "sortField": [
+            {
+              "fieldName": "createdAt",
+              "order": "descending"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.sort",
+      "typeVersion": 1,
+      "position": [
+        480,
+        0
+      ],
+      "id": "656df0a3-5a6d-48a2-9cf1-c9cfeb1540aa",
+      "name": "Sort"
+    }
+  ],
+  "connections": {
+    "Webhook GET": {
+      "main": [
+        [
+          {
+            "node": "Get News Table",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get News Table": {
+      "main": [
+        [
+          {
+            "node": "Sort",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update row(s)": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "Update row(s)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sort": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": {},
+  "versionId": "cc9f97d4-a374-456a-bbfe-cbcfc2f83063",
+  "activeVersionId": "cc9f97d4-a374-456a-bbfe-cbcfc2f83063",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-01-02T22:26:13.056Z",
+      "createdAt": "2026-01-02T22:26:13.056Z",
+      "role": "workflow:owner",
+      "workflowId": "1ZHWSpDLJA3MMrIP",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-04T21:39:34.334Z",
+    "createdAt": "2026-02-04T21:39:34.334Z",
+    "versionId": "cc9f97d4-a374-456a-bbfe-cbcfc2f83063",
+    "workflowId": "1ZHWSpDLJA3MMrIP",
+    "nodes": [
+      {
+        "parameters": {
+          "path": "news/today",
+          "responseMode": "lastNode",
+          "options": {}
+        },
+        "id": "661f647f-e039-4769-89da-86aae98892db",
+        "name": "Webhook GET",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 1,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "0cad0ab0-c35d-43a4-8c60-e2c50544fa7c"
+      },
+      {
+        "parameters": {
+          "operation": "get",
+          "dataTableId": {
+            "__rl": true,
+            "value": "JnVde1xTjaVHMlMx",
+            "mode": "id"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyName": "createdAt",
+                "condition": "gte",
+                "keyValue": "={{ $now.minus({days: 7}).toISO() }}"
+              }
+            ]
+          },
+          "limit": 10
+        },
+        "id": "01d47436-6b21-4d09-a0f6-bd7c889c98cc",
+        "name": "Get News Table",
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1,
+        "position": [
+          224,
+          0
+        ]
+      },
+      {
+        "parameters": {
+          "operation": "update",
+          "dataTableId": {
+            "__rl": true,
+            "value": "JnVde1xTjaVHMlMx",
+            "mode": "list",
+            "cachedResultName": "DailyDigests",
+            "cachedResultUrl": "/projects/jNVg0G6i9vrm7uSd/datatables/JnVde1xTjaVHMlMx"
+          },
+          "filters": {
+            "conditions": [
+              {
+                "keyValue": "={{ $json.id }}"
+              }
+            ]
+          },
+          "columns": {
+            "mappingMode": "defineBelow",
+            "value": {
+              "deliveredAt": "={{ $now }}"
+            },
+            "matchingColumns": [],
+            "schema": [
+              {
+                "id": "publishedDate",
+                "displayName": "publishedDate",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "dateTime",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "title",
+                "displayName": "title",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "text",
+                "displayName": "text",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "url",
+                "displayName": "url",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "category",
+                "displayName": "category",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "string",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "isDelivered",
+                "displayName": "isDelivered",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "boolean",
+                "readOnly": false,
+                "removed": true
+              },
+              {
+                "id": "deliveredAt",
+                "displayName": "deliveredAt",
+                "required": false,
+                "defaultMatch": false,
+                "display": true,
+                "type": "dateTime",
+                "readOnly": false,
+                "removed": false
+              }
+            ],
+            "attemptToConvertTypes": false,
+            "convertFieldsToString": false
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.dataTable",
+        "typeVersion": 1.1,
+        "position": [
+          1104,
+          0
+        ],
+        "id": "5f9532c4-642b-41b6-8902-53354ffbcd8a",
+        "name": "Update row(s)"
+      },
+      {
+        "parameters": {
+          "respondWith": "allIncomingItems",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.5,
+        "position": [
+          1552,
+          0
+        ],
+        "id": "36e139cb-4ee3-45ed-89d6-5d678cd13b0d",
+        "name": "Respond to Webhook"
+      },
+      {
+        "parameters": {},
+        "type": "n8n-nodes-base.limit",
+        "typeVersion": 1,
+        "position": [
+          752,
+          0
+        ],
+        "id": "b3596a89-dde0-4c09-b1f5-ad6193b2f264",
+        "name": "Limit"
+      },
+      {
+        "parameters": {
+          "sortFieldsUi": {
+            "sortField": [
+              {
+                "fieldName": "createdAt",
+                "order": "descending"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "type": "n8n-nodes-base.sort",
+        "typeVersion": 1,
+        "position": [
+          480,
+          0
+        ],
+        "id": "656df0a3-5a6d-48a2-9cf1-c9cfeb1540aa",
+        "name": "Sort"
+      }
+    ],
+    "connections": {
+      "Webhook GET": {
+        "main": [
+          [
+            {
+              "node": "Get News Table",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Get News Table": {
+        "main": [
+          [
+            {
+              "node": "Sort",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Update row(s)": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Limit": {
+        "main": [
+          [
+            {
+              "node": "Update row(s)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sort": {
+        "main": [
+          [
+            {
+              "node": "Limit",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
