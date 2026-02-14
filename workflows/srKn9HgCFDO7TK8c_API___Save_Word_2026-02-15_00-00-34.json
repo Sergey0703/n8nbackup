@@ -1,0 +1,743 @@
+{
+  "updatedAt": "2026-02-12T17:06:37.242Z",
+  "createdAt": "2026-02-11T20:06:25.503Z",
+  "id": "srKn9HgCFDO7TK8c",
+  "name": "API - Save Word",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "webhook-save",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "save-word-webhook-v1",
+      "parameters": {
+        "path": "save-word",
+        "httpMethod": "POST",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "code-validate",
+      "name": "Validate & Prepare",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        220,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst word = (body.word || '').trim();\nconst translate = (body.translate || '').trim();\n\nif (!word) throw new Error('word is required');\nif (!translate) throw new Error('translate is required');\n\nfunction uuid() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst wordLower = word.toLowerCase();\n// Sanitize filename: replace spaces and special chars with underscore\nconst safeFilename = wordLower.replace(/[^a-z0-9а-яё]/gi, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');\n\nreturn [{ json: {\n  word: wordLower,\n  translate,\n  transcript: (body.transcript || '').replace(/^\\/|\\/$/g, ''),\n  partOfSpeech: body.partOfSpeech || '',\n  level: body.level || '',\n  stage: 'repeat',\n  code: uuid(),\n  safeFilename: safeFilename\n} }];"
+      }
+    },
+    {
+      "id": "set-date",
+      "name": "Set Train Date",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "trainDate",
+              "value": "={{ new Date() }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      }
+    },
+    {
+      "id": "mongo-insert",
+      "name": "MongoDB: Save Word",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        0
+      ],
+      "parameters": {
+        "fields": "word,translate,transcript,partOfSpeech,level,stage,code"
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "tts-en",
+      "name": "TTS EN (Kokoro)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        880,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://kokoro-tts:8880/v1/audio/speech",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ \"input\": $('Validate & Prepare').first().json.word, \"voice\": \"af_bella\", \"response_format\": \"mp3\", \"speed\": 1.0 }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "save-audio-en",
+      "name": "Save EN Audio",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        0
+      ],
+      "parameters": {
+        "fileName": "=/home/node/audio/{{ $('Validate & Prepare').first().json.safeFilename }}.mp3",
+        "options": {}
+      }
+    },
+    {
+      "id": "tts-ru",
+      "name": "TTS RU (edge-tts)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        1320,
+        0
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "http://edge-tts:8000/tts",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ \"text\": $('Validate & Prepare').first().json.translate, \"lang\": \"ru\" }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          },
+          "timeout": 60000
+        }
+      }
+    },
+    {
+      "id": "save-audio-ru",
+      "name": "Save RU Audio",
+      "type": "n8n-nodes-base.writeBinaryFile",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        0
+      ],
+      "parameters": {
+        "fileName": "=/home/node/audio-ru/{{ $('Validate & Prepare').first().json.safeFilename }}.mp3",
+        "options": {}
+      }
+    },
+    {
+      "id": "set-audio-urls",
+      "name": "Set Audio URLs",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        1760,
+        0
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "name": "sound",
+              "value": "=https://vocab.aimediaflow.net/audio/{{ $('Validate & Prepare').first().json.safeFilename }}.mp3",
+              "type": "string"
+            },
+            {
+              "name": "soundRu",
+              "value": "=https://vocab.aimediaflow.net/audio-ru/{{ $('Validate & Prepare').first().json.safeFilename }}.mp3",
+              "type": "string"
+            },
+            {
+              "name": "word",
+              "value": "={{ $('Validate & Prepare').first().json.word }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "mongo-update-audio",
+      "name": "MongoDB: Update Audio",
+      "type": "n8n-nodes-base.mongoDb",
+      "typeVersion": 1.2,
+      "position": [
+        1980,
+        0
+      ],
+      "parameters": {
+        "operation": "update",
+        "collection": "words",
+        "updateKey": "=word",
+        "fields": "sound,soundRu",
+        "options": {}
+      },
+      "credentials": {
+        "mongoDb": {
+          "id": "p5lVP30sDORJCo8v",
+          "name": "MongoDB account"
+        }
+      }
+    },
+    {
+      "id": "respond-save",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        0
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: true, word: $('Validate & Prepare').first().json.word, sound: $('Set Audio URLs').first().json.sound, soundRu: $('Set Audio URLs').first().json.soundRu } }}",
+        "options": {
+          "responseCode": 201,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Prepare",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Prepare": {
+      "main": [
+        [
+          {
+            "node": "Set Train Date",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Train Date": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Save Word",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Save Word": {
+      "main": [
+        [
+          {
+            "node": "TTS EN (Kokoro)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TTS EN (Kokoro)": {
+      "main": [
+        [
+          {
+            "node": "Save EN Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save EN Audio": {
+      "main": [
+        [
+          {
+            "node": "TTS RU (edge-tts)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TTS RU (edge-tts)": {
+      "main": [
+        [
+          {
+            "node": "Save RU Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save RU Audio": {
+      "main": [
+        [
+          {
+            "node": "Set Audio URLs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Audio URLs": {
+      "main": [
+        [
+          {
+            "node": "MongoDB: Update Audio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MongoDB: Update Audio": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "950a829c-b48a-4eef-bdc4-8627fe16b39c",
+  "activeVersionId": "950a829c-b48a-4eef-bdc4-8627fe16b39c",
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-11T20:06:25.503Z",
+      "createdAt": "2026-02-11T20:06:25.503Z",
+      "role": "workflow:owner",
+      "workflowId": "srKn9HgCFDO7TK8c",
+      "projectId": "jNVg0G6i9vrm7uSd"
+    }
+  ],
+  "activeVersion": {
+    "updatedAt": "2026-02-12T17:06:37.248Z",
+    "createdAt": "2026-02-12T17:06:37.248Z",
+    "versionId": "950a829c-b48a-4eef-bdc4-8627fe16b39c",
+    "workflowId": "srKn9HgCFDO7TK8c",
+    "nodes": [
+      {
+        "id": "webhook-save",
+        "name": "Webhook",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          0,
+          0
+        ],
+        "webhookId": "save-word-webhook-v1",
+        "parameters": {
+          "path": "save-word",
+          "httpMethod": "POST",
+          "responseMode": "responseNode",
+          "options": {}
+        }
+      },
+      {
+        "id": "code-validate",
+        "name": "Validate & Prepare",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          220,
+          0
+        ],
+        "parameters": {
+          "jsCode": "const body = $input.first().json.body || {};\nconst word = (body.word || '').trim();\nconst translate = (body.translate || '').trim();\n\nif (!word) throw new Error('word is required');\nif (!translate) throw new Error('translate is required');\n\nfunction uuid() {\n  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {\n    const r = Math.random() * 16 | 0;\n    const v = c === 'x' ? r : (r & 0x3 | 0x8);\n    return v.toString(16);\n  });\n}\n\nconst wordLower = word.toLowerCase();\n// Sanitize filename: replace spaces and special chars with underscore\nconst safeFilename = wordLower.replace(/[^a-z0-9а-яё]/gi, '_').replace(/_+/g, '_').replace(/^_|_$/g, '');\n\nreturn [{ json: {\n  word: wordLower,\n  translate,\n  transcript: (body.transcript || '').replace(/^\\/|\\/$/g, ''),\n  partOfSpeech: body.partOfSpeech || '',\n  level: body.level || '',\n  stage: 'repeat',\n  code: uuid(),\n  safeFilename: safeFilename\n} }];"
+        }
+      },
+      {
+        "id": "set-date",
+        "name": "Set Train Date",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          440,
+          0
+        ],
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "name": "trainDate",
+                "value": "={{ new Date() }}",
+                "type": "object"
+              }
+            ]
+          },
+          "includeOtherFields": true,
+          "options": {}
+        }
+      },
+      {
+        "id": "mongo-insert",
+        "name": "MongoDB: Save Word",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.1,
+        "position": [
+          660,
+          0
+        ],
+        "parameters": {
+          "fields": "word,translate,transcript,partOfSpeech,level,stage,code"
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "tts-en",
+        "name": "TTS EN (Kokoro)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          880,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://kokoro-tts:8880/v1/audio/speech",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ \"input\": $('Validate & Prepare').first().json.word, \"voice\": \"af_bella\", \"response_format\": \"mp3\", \"speed\": 1.0 }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            },
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "save-audio-en",
+        "name": "Save EN Audio",
+        "type": "n8n-nodes-base.writeBinaryFile",
+        "typeVersion": 1,
+        "position": [
+          1100,
+          0
+        ],
+        "parameters": {
+          "fileName": "=/home/node/audio/{{ $('Validate & Prepare').first().json.safeFilename }}.mp3",
+          "options": {}
+        }
+      },
+      {
+        "id": "tts-ru",
+        "name": "TTS RU (edge-tts)",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.3,
+        "position": [
+          1320,
+          0
+        ],
+        "parameters": {
+          "method": "POST",
+          "url": "http://edge-tts:8000/tts",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ \"text\": $('Validate & Prepare').first().json.translate, \"lang\": \"ru\" }) }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "file"
+              }
+            },
+            "timeout": 60000
+          }
+        }
+      },
+      {
+        "id": "save-audio-ru",
+        "name": "Save RU Audio",
+        "type": "n8n-nodes-base.writeBinaryFile",
+        "typeVersion": 1,
+        "position": [
+          1540,
+          0
+        ],
+        "parameters": {
+          "fileName": "=/home/node/audio-ru/{{ $('Validate & Prepare').first().json.safeFilename }}.mp3",
+          "options": {}
+        }
+      },
+      {
+        "id": "set-audio-urls",
+        "name": "Set Audio URLs",
+        "type": "n8n-nodes-base.set",
+        "typeVersion": 3.4,
+        "position": [
+          1760,
+          0
+        ],
+        "parameters": {
+          "assignments": {
+            "assignments": [
+              {
+                "name": "sound",
+                "value": "=https://vocab.aimediaflow.net/audio/{{ $('Validate & Prepare').first().json.safeFilename }}.mp3",
+                "type": "string"
+              },
+              {
+                "name": "soundRu",
+                "value": "=https://vocab.aimediaflow.net/audio-ru/{{ $('Validate & Prepare').first().json.safeFilename }}.mp3",
+                "type": "string"
+              },
+              {
+                "name": "word",
+                "value": "={{ $('Validate & Prepare').first().json.word }}",
+                "type": "string"
+              }
+            ]
+          },
+          "options": {}
+        }
+      },
+      {
+        "id": "mongo-update-audio",
+        "name": "MongoDB: Update Audio",
+        "type": "n8n-nodes-base.mongoDb",
+        "typeVersion": 1.2,
+        "position": [
+          1980,
+          0
+        ],
+        "parameters": {
+          "operation": "update",
+          "collection": "words",
+          "updateKey": "=word",
+          "fields": "sound,soundRu",
+          "options": {}
+        },
+        "credentials": {
+          "mongoDb": {
+            "id": "p5lVP30sDORJCo8v",
+            "name": "MongoDB account"
+          }
+        }
+      },
+      {
+        "id": "respond-save",
+        "name": "Respond to Webhook",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          2200,
+          0
+        ],
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ { success: true, word: $('Validate & Prepare').first().json.word, sound: $('Set Audio URLs').first().json.sound, soundRu: $('Set Audio URLs').first().json.soundRu } }}",
+          "options": {
+            "responseCode": 201,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "*"
+                },
+                {
+                  "name": "Access-Control-Allow-Methods",
+                  "value": "POST, OPTIONS"
+                },
+                {
+                  "name": "Access-Control-Allow-Headers",
+                  "value": "Content-Type"
+                }
+              ]
+            }
+          }
+        }
+      }
+    ],
+    "connections": {
+      "Webhook": {
+        "main": [
+          [
+            {
+              "node": "Validate & Prepare",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Validate & Prepare": {
+        "main": [
+          [
+            {
+              "node": "Set Train Date",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Train Date": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Save Word",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Save Word": {
+        "main": [
+          [
+            {
+              "node": "TTS EN (Kokoro)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "TTS EN (Kokoro)": {
+        "main": [
+          [
+            {
+              "node": "Save EN Audio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save EN Audio": {
+        "main": [
+          [
+            {
+              "node": "TTS RU (edge-tts)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "TTS RU (edge-tts)": {
+        "main": [
+          [
+            {
+              "node": "Save RU Audio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Save RU Audio": {
+        "main": [
+          [
+            {
+              "node": "Set Audio URLs",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Set Audio URLs": {
+        "main": [
+          [
+            {
+              "node": "MongoDB: Update Audio",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "MongoDB: Update Audio": {
+        "main": [
+          [
+            {
+              "node": "Respond to Webhook",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Serhii Bal",
+    "name": null,
+    "description": null,
+    "autosaved": false
+  },
+  "tags": []
+}
